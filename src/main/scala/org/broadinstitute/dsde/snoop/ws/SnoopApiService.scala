@@ -34,7 +34,7 @@ trait SnoopApiService extends HttpService {
     path("workflowExecutions" / Segment) { id =>
           respondWithMediaType(`application/json`) {
             complete {
-              WorkflowExecution(Some(id), Map.empty, None, "workflow_id", "callback")
+              WorkflowExecution(Some(id), Map.empty, None, "workflow_id", "callback", Some("running"))
             }
           }
       }

@@ -13,8 +13,9 @@ case class WorkflowExecution(
     workflowParameters: Map[String, String], 
     runtimeParameters: Option[Map[String, String]], 
     workflowId: String, 
-    callbackUri: String)
+    callbackUri: String,
+    status: Option[String])
 
 object WorkflowExecutionJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit val AnalysisFormat = jsonFormat5(WorkflowExecution)
+  implicit val AnalysisFormat = jsonFormat6(WorkflowExecution)
 }
