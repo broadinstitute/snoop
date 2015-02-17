@@ -31,10 +31,10 @@ trait SnoopApiService extends HttpService {
         }
       }
     } ~
-    path("workflowExecutions" / String) { id =>
+    path("workflowExecutions" / Segment) { id =>
           respondWithMediaType(`application/json`) {
             complete {
-              workflowExecution.copy(id=Some("static_id"))
+              WorkflowExecution(Some(id), Map.empty, None, "workflow_id", "callback")
             }
           }
       }
