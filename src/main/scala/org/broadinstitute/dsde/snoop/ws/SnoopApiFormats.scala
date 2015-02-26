@@ -16,6 +16,12 @@ case class WorkflowExecution(
     callbackUri: String,
     status: Option[String])
 
+case class ZamboniSubmission(
+    submissionId: String,
+    authToken: String,
+    requestString: Map[String, String])
+
 object WorkflowExecutionJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val AnalysisFormat = jsonFormat6(WorkflowExecution)
+  implicit val ZamboniSubmissionFormat = jsonFormat3(ZamboniSubmission)
 }

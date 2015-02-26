@@ -4,3 +4,24 @@
 1. Snoop, Hit woman (executor) from *The Wire*:
 
 ![](http://i.telegraph.co.uk/multimedia/archive/01846/snoopSUM_1846833c.jpg)
+
+## get started
+Install sbt
+```
+$ brew install sbt
+```
+Launch sbt and start application
+```
+$ sbt
+...
+$ > re-start
+```
+Stop application
+```
+$ > re-stop
+```
+Test
+```
+$ sbt clean test
+
+```

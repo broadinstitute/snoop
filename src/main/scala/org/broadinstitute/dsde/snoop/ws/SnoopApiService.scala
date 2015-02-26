@@ -1,6 +1,7 @@
 package org.broadinstitute.dsde.snoop
 
 import akka.actor.Actor
+import akka.event.Logging
 import spray.routing._
 import spray.http._
 import spray.http.MediaTypes._
@@ -18,8 +19,23 @@ class SnoopApiServiceActor extends Actor with SnoopApiService {
 
 // this trait defines our service behavior independently from the service actor
 trait SnoopApiService extends HttpService {
+  implicit def executionContext = actorRefFactory.dispatcher
 
   val snoopRoute =
+    path("") {
+      get {
+        respondWithMediaType(`text/html`) {
+          complete {
+            <html>
+              <body>
+                <h1>Snoop web service is operational</h1>
+              </body>
+            </html>
+          }
+        }
+      }
+
+    } ~
     path("workflowExecutions") {
       post {
         entity(as[WorkflowExecution]) { workflowExecution =>
