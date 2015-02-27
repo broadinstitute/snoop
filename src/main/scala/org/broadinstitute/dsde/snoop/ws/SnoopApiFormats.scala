@@ -1,7 +1,6 @@
 package org.broadinstitute.dsde.snoop.ws
 
-import java.net.URI
-import spray.json.DefaultJsonProtocol
+import spray.json.{JsonFormat, DefaultJsonProtocol}
 import spray.httpx.SprayJsonSupport
 
 class SnoopApiFormats {
@@ -19,9 +18,14 @@ case class WorkflowExecution(
 case class ZamboniSubmission(
     submissionId: String,
     authToken: String,
-    requestString: Map[String, String])
+    requestString: String)
 
-object WorkflowExecutionJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
+case class ZamboniSubmissionResult(
+    submissionId: String,
+    status: String)
+
+object WorkflowExecutionJsonSupport extends DefaultJsonProtocol {
   implicit val AnalysisFormat = jsonFormat6(WorkflowExecution)
   implicit val ZamboniSubmissionFormat = jsonFormat3(ZamboniSubmission)
+  implicit def ZamboniSubmissionResultFormat = jsonFormat2(ZamboniSubmissionResult)
 }
