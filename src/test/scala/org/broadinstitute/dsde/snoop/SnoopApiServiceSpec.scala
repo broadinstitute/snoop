@@ -16,7 +16,7 @@ class SnoopApiServiceSpec extends Specification with SnoopApiService with Specs2
       }
 
       "should return 200" in {
-        Post(s"http://127.0.0.1:8080/workflowExecution", HttpEntity(ContentTypes.`application/json`, s"""{
+        Post(s"/workflowExecution", HttpEntity(ContentTypes.`application/json`, s"""{
          "submissionId": "f00ba4",
           "authToken": "some-token",
           "requestString":  "{\\"key1\\": \\"value1\\"}"
