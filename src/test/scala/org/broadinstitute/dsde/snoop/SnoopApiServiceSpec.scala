@@ -13,6 +13,9 @@ class SnoopApiServiceSpec extends Specification with SnoopApiService with Specs2
   def actorRefFactory = system
   val submissionResult = ZamboniSubmissionResult("f00ba4", "SUBMITTED")
 
+  val testHost = new HttpHeaders.Host("127.0.0.1", 8080)
+  implicit val defaulthost = new DefaultHostInfo(testHost, false)
+
   "Snoop" should {
       "return a greeting for GET requests to the root path" in {
         Get() ~> snoopRoute ~> check {
@@ -25,7 +28,7 @@ class SnoopApiServiceSpec extends Specification with SnoopApiService with Specs2
           "authToken": "some-token",
           "requestString":  "{\\"key1\\": \\"value1\\"}"
         }""")) ~>
-          snoopRoute ~> check {
+          sealRoute(snoopRoute) ~> check {
           status === OK
           responseAs[ZamboniSubmissionResult] === submissionResult
         }
