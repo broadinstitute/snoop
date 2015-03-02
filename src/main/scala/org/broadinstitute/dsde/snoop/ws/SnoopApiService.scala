@@ -39,11 +39,29 @@ trait SnoopApiService extends HttpService {
       }
 
     } ~
-    path("workflowExecution") {
+    path("workflowExecution") {           //route as an example for development
       entity(as[ZamboniSubmission]) { submission =>
         requestContext =>
-          val elevationService = actorRefFactory.actorOf(Props(new ExecutionService(requestContext)))
-          elevationService ! ExecutionService.Process(submission)
+          val executionService = actorRefFactory.actorOf(Props(new ExecutionService(requestContext)))
+          executionService ! ExecutionService.Process(submission)
       }
-    }
+    } ~
+      path("workflowExecutions") {
+        post {
+          entity(as[WorkflowExecution]) { workflowExecution =>
+            respondWithMediaType(`application/json`) {
+              complete {
+                workflowExecution.copy(id=Some("static_id"))
+              }
+            }
+          }
+        }
+      } ~
+      path("workflowExecutions" / Segment) { id =>
+        respondWithMediaType(`application/json`) {
+          complete {
+            WorkflowExecution(Some(id), Map.empty, None, "workflow_id", "callback", Some("running"))
+          }
+        }
+      }
 }
