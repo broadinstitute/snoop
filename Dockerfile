@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y wget && \
 
 RUN ["/bin/bash", "-c", "/snoop/docker/install.sh /snoop"]
 
-# Add Herc as a service (it will start when the container starts)
+# Add Snoop as a service (it will start when the container starts)
 RUN mkdir /etc/service/snoop
 ADD docker/run.sh /etc/service/snoop/run
 
