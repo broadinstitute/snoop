@@ -24,20 +24,20 @@ class ExecutionService(requestContext: RequestContext) extends Actor {
   import system.dispatcher
   val log = Logging(system, getClass)
 
-  def receive = {
+  override def receive = {
     case Process(submission) =>
       process(submission)
       context.stop(self)
   }
 
-  def process(submissionMessage: ZamboniSubmission) = {
+  def process(submissionMessage: ZamboniSubmission) : Unit = {
     log.info("Submitting workflow: id:{}", submissionMessage.submissionId)
 
     import WorkflowExecutionJsonSupport._
     import SprayJsonSupport._
     val pipeline = sendReceive ~> unmarshal[ZamboniSubmissionResult]
 
-    val responseFuture = pipeline{
+    val responseFuture = pipeline {
       Post(s"http://picard02.openstack.broadinstitute.org:9262/submit", submissionMessage)
     }
     responseFuture onComplete {

@@ -13,14 +13,14 @@ import spray.testkit.ScalatestRouteTest
 
 class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRouteTest with Matchers {
   def actorRefFactory = system
-  val submissionResult = ZamboniSubmissionResult("f00ba4", "SUBMITTED")
 
   "Snoop" should "return a greeting for GET requests to the root path" in {
     Get() ~> snoopRoute ~> check {
       responseAs[String] should include("Snoop web service is operational")
     }
   }
-  ignore should "submission should return 200" in {
+  //disable the test b/c it failed on travis
+  ignore should "return 200 for submission to workflowExecution" in {
       Post("/workflowExecution", HttpEntity(ContentTypes.`application/json`, s"""{
          "submissionId": "f00ba4",
           "authToken": "some-token",
@@ -28,7 +28,7 @@ class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRo
         }""")) ~>
         sealRoute(snoopRoute) ~> check {
         status === OK
-        responseAs[ZamboniSubmissionResult] === submissionResult
+        responseAs[ZamboniSubmissionResult] === ZamboniSubmissionResult("f00ba4", "SUBMITTED")
       }
     }
 }
