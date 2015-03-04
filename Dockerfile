@@ -21,7 +21,8 @@ RUN apt-get update && apt-get install -y wget && \
     dpkg -i scala-2.11.4.deb && \
     dpkg -i sbt-0.13.7.deb && \
     apt-get update && \
-    apt-get install -y scala sbt
+    apt-get install -y scala sbt && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /*.deb
 
 RUN ["/bin/bash", "-c", "/snoop/docker/install.sh /snoop"]
 
@@ -39,6 +40,3 @@ ADD docker/run.sh /etc/service/snoop/run
 #RUN rm -f /etc/service/sshd/down
 #ADD id_rsa.pub /tmp/id_rsa.pub
 #RUN cat /tmp/id_rsa.pub >> /root/.ssh/authorized_keys
-
-# Clean up APT and temp files when done.
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /*.deb
