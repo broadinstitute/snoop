@@ -19,6 +19,10 @@ Running
 $ java -jar target/scala-2.11/snoop-assembly-0.1.jar
 [INFO] [02/27/2015 15:47:44.588] [on-spray-can-akka.actor.default-dispatcher-4] [akka://on-spray-can/user/IO-HTTP/listener-0] Bound to localhost/127.0.0.1:8080
 ```
+or
+```bash
+$ sbt run
+```
 
 Snoop in Docker
 ---------------

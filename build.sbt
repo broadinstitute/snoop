@@ -12,11 +12,13 @@ libraryDependencies ++= {
   Seq(
     "io.spray"            %%  "spray-can"     % sprayV,
     "io.spray"            %%  "spray-routing" % sprayV,
+    "io.spray"            %%  "spray-client" % sprayV,
     "io.spray"            %%  "spray-json"   % "1.3.1",
-    "io.spray"            %%  "spray-testkit" % sprayV  % "test",
     "com.typesafe.akka"   %%  "akka-actor"    % akkaV,
+    "com.lambdaworks" %% "jacks" % "2.3.3",
+    "io.spray"            %%  "spray-testkit" % sprayV  % "test",
     "com.typesafe.akka"   %%  "akka-testkit"  % akkaV   % "test",
-    "org.specs2"          %%  "specs2-core"   % "2.3.11" % "test"
+    "org.scalatest"       %%  "scalatest"     % "2.2.4" % "test"
   )
 }
 
