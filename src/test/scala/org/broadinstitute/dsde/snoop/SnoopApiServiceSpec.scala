@@ -2,7 +2,6 @@ package org.broadinstitute.dsde.snoop
 
 import org.broadinstitute.dsde.snoop.ws.{WorkflowExecutionJsonSupport, ZamboniSubmissionResult}
 import spray.httpx.SprayJsonSupport
-import spray.testkit.Specs2RouteTest
 import spray.http._
 import StatusCodes._
 import WorkflowExecutionJsonSupport._
@@ -20,15 +19,19 @@ class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRo
     }
   }
   //disable the test b/c it failed on travis
+  //the fix is to allow zamboni test server picard02 accept ip from outside Broad network
+  //or do not do routetest at all
   ignore should "return 200 for submission to workflowExecution" in {
-      Post("/workflowExecution", HttpEntity(ContentTypes.`application/json`, s"""{
-         "submissionId": "f00ba4",
-          "authToken": "some-token",
-          "requestString":  "{\\"key1\\": \\"value1\\"}"
-        }""")) ~>
-        sealRoute(snoopRoute) ~> check {
-        status === OK
-        responseAs[ZamboniSubmissionResult] === ZamboniSubmissionResult("f00ba4", "SUBMITTED")
-      }
+    Post("/workflowExecutions", HttpEntity(ContentTypes.`application/json`, s"""{
+         "id": "f00ba4",
+          "workflowParameters": {"para1": "v1", "p2": "v2"},
+          "workflowId":  "workflow_id",
+          "callbackUri": "callback",
+          "status": "submitting"
+}""")) ~>
+      sealRoute(snoopRoute) ~> check {
+      status === OK
+      responseAs[ZamboniSubmissionResult] === ZamboniSubmissionResult("f00ba4", "SUBMITTED")
     }
+  }
 }
