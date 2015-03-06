@@ -1,14 +1,13 @@
 package org.broadinstitute.dsde.snoop
 
-import akka.actor.Actor
+import akka.actor.{Props, Actor}
+import spray.httpx.SprayJsonSupport
 import spray.routing._
-import spray.http._
+import spray.json._
 import spray.http.MediaTypes._
 import spray.httpx.marshalling.ToResponseMarshallable.isMarshallable
 import spray.routing.Directive.pimpApply
-import org.broadinstitute.dsde.snoop.ws.WorkflowExecution
-import org.broadinstitute.dsde.snoop.ws.WorkflowExecutionJsonSupport._
-
+import org.broadinstitute.dsde.snoop.ws._
 
 class SnoopApiServiceActor extends Actor with SnoopApiService {
   def actorRefFactory = context
@@ -18,24 +17,47 @@ class SnoopApiServiceActor extends Actor with SnoopApiService {
 
 // this trait defines our service behavior independently from the service actor
 trait SnoopApiService extends HttpService {
+  implicit def executionContext = actorRefFactory.dispatcher
+  import WorkflowExecutionJsonSupport._
+  import SprayJsonSupport._
+
+  def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution) : ZamboniSubmission = {
+    val zamboniRequest = ZamboniWorkflow(Map("workflow"-> exeMessage.workflowId), exeMessage.workflowParameters)
+    val zamboniRequestString = zamboniRequest.toJson.toString
+    val zamboniMessage = ZamboniSubmission("some-token", zamboniRequestString)
+    zamboniMessage
+  }
 
   val snoopRoute =
-    path("workflowExecutions") {
-      post {
-        entity(as[WorkflowExecution]) { workflowExecution =>
-          respondWithMediaType(`application/json`) {
-            complete {
-              workflowExecution.copy(id=Some("static_id"))
-            }
+    path("") {
+      get {
+        respondWithMediaType(`text/html`) {
+          complete {
+            <html>
+              <body>
+                <h1>Snoop web service is operational</h1>
+              </body>
+            </html>
           }
         }
       }
     } ~
-    path("workflowExecutions" / Segment) { id =>
-          respondWithMediaType(`application/json`) {
-            complete {
-              WorkflowExecution(Some(id), Map.empty, None, "workflow_id", "callback", Some("running"))
-            }
+    path("workflowExecutions") {
+        post {
+          entity(as[WorkflowExecution]) { workflowExecution =>
+            requestContext =>
+              val submission = snoop2ZamboniWorkflow(workflowExecution)
+              val executionService = actorRefFactory.actorOf(Props(new ExecutionService(requestContext)))
+              executionService ! ExecutionService.Process(submission)
           }
+        }
+      } ~
+    path("workflowExecutions" / Segment) { id =>
+        respondWithMediaType(`application/json`) {
+          complete {
+            //placeholder to call the getStatus api
+            WorkflowExecution(Option(id), Map.empty, "workflow_id", "callback", Some("running"))
+          }
+        }
       }
 }
