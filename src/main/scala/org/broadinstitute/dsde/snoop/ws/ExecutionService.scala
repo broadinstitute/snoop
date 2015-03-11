@@ -39,7 +39,7 @@ case class ExecutionService(requestContext: RequestContext) extends Actor {
     val pipeline = sendReceive ~> unmarshal[ZamboniSubmissionResult]
 
     val responseFuture = pipeline {
-      Post(s"http://picard02.openstack.broadinstitute.org:9262/submit", submissionMessage)
+      Post(s"http://vzamboni-ces.broadinstitute.org:9262/submit", submissionMessage)
     }
     responseFuture onComplete {
       case Success(ZamboniSubmissionResult(workflowId, status)) =>
