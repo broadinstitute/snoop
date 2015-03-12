@@ -1,6 +1,7 @@
 package org.broadinstitute.dsde.snoop
 
 import akka.actor.{Props, Actor}
+import com.typesafe.config.Config
 import spray.httpx.SprayJsonSupport
 import spray.routing._
 import spray.json._
@@ -8,8 +9,15 @@ import spray.http.MediaTypes._
 import spray.httpx.marshalling.ToResponseMarshallable.isMarshallable
 import spray.routing.Directive.pimpApply
 import org.broadinstitute.dsde.snoop.ws._
+import akka.event.Logging
 
-class SnoopApiServiceActor extends Actor with SnoopApiService {
+object SnoopApiServiceActor {
+  def props(executionServiceHandler: RequestContext => WorkflowExecutionService): Props = {
+    Props(new SnoopApiServiceActor(executionServiceHandler))
+  }
+}
+
+class SnoopApiServiceActor(override val executionServiceHandler: RequestContext => WorkflowExecutionService) extends Actor with SnoopApiService {
   def actorRefFactory = context
   def receive = runRoute(snoopRoute)
 }
@@ -21,14 +29,7 @@ trait SnoopApiService extends HttpService {
   import WorkflowExecutionJsonSupport._
   import SprayJsonSupport._
 
-  def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution) : ZamboniSubmission = {
-    var zamboniWorkflow = exeMessage.workflowParameters
-    zamboniWorkflow += ("gcsSandboxBucket" -> "gs://broad-dsde-dev-public/snoop")
-    val zamboniRequest = ZamboniWorkflow(Map("workflow"-> exeMessage.workflowId), zamboniWorkflow)
-    val zamboniRequestString = zamboniRequest.toJson.toString
-    val zamboniMessage = ZamboniSubmission("some-token", zamboniRequestString)
-    zamboniMessage
-  }
+  def executionServiceHandler: RequestContext => WorkflowExecutionService
 
   val snoopRoute =
     path("") {
@@ -45,21 +46,57 @@ trait SnoopApiService extends HttpService {
       }
     } ~
     path("workflowExecutions") {
-        post {
-          entity(as[WorkflowExecution]) { workflowExecution =>
-            requestContext =>
-              val submission = snoop2ZamboniWorkflow(workflowExecution)
-              val executionService = actorRefFactory.actorOf(Props(new ExecutionService(requestContext)))
-              executionService ! ExecutionService.Process(submission)
-          }
-        }
-      } ~
-    path("workflowExecutions" / Segment) { id =>
-        respondWithMediaType(`application/json`) {
-          complete {
-            //placeholder to call the getStatus api
-            WorkflowExecution(Option(id), Map.empty, "workflow_id", "callback", Some("running"))
-          }
+      post {
+        entity(as[WorkflowExecution]) { workflowExecution =>
+          requestContext =>
+            val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
+            executionService ! WorkflowExecutionService.WorkflowStart(workflowExecution)
         }
       }
+    } ~
+    path("workflowExecutions" / Segment) { id =>
+      respondWithMediaType(`application/json`) {
+        requestContext =>
+          val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
+          executionService ! WorkflowExecutionService.WorkflowStatus(id)
+      }
+    }
+}
+
+object WorkflowExecutionService {
+  case class WorkflowStart(workflowExecution: WorkflowExecution)
+  case class WorkflowStatus(id: String)
+
+  def props(executionServiceHandler: RequestContext => WorkflowExecutionService, requestContext: RequestContext): Props = {
+    Props(executionServiceHandler(requestContext))
+  }
+
+}
+
+trait WorkflowExecutionService extends Actor {
+  val requestContext: RequestContext
+
+  implicit val system = context.system
+  val log = Logging(system, getClass)
+
+
+  override def receive = {
+    case WorkflowExecutionService.WorkflowStart(workflowExecution) =>
+      start(workflowExecution)
+      context.stop(self)
+    case WorkflowExecutionService.WorkflowStatus(id) =>
+      status(id)
+      context.stop(self)
+  }
+
+  /**
+   * Starts a workflow execution, emits response directly to requestContext which should include
+   * the id of the workflow execution
+   */
+  def start(workflowExecution: WorkflowExecution)
+  
+  /**
+   * Gets status of a workflow execution, emits response directly to requestContext
+   */
+  def status(id: String)
 }
