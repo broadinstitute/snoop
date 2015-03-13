@@ -73,7 +73,7 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
   }
 
   def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution) : ZamboniSubmission = {
-    val zamboniRequest = ZamboniWorkflow(Map("workflow"-> exeMessage.workflowId), exeMessage.workflowParameters ++ ("gcsSandboxBucket" -> "gs://broad-dsde-dev-public/snoop"))
+    val zamboniRequest = ZamboniWorkflow(Map("workflow"-> exeMessage.workflowId), exeMessage.workflowParameters + ("gcsSandboxBucket" -> "gs://broad-dsde-dev-public/snoop"))
     val zamboniRequestString = zamboniRequest.toJson.toString
     val zamboniMessage = ZamboniSubmission("some-token", zamboniRequestString)
     zamboniMessage

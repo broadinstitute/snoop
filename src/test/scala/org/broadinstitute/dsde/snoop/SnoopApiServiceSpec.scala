@@ -50,6 +50,9 @@ object MockZamboniApi extends ZamboniApi {
   import scala.concurrent.ExecutionContext.Implicits.global
   def start(zamboniSubmission: ZamboniSubmission): Future[ZamboniSubmissionResult] = {
     Future {
+      if (!zamboniSubmission.requestString.contains("gcsSandboxBucket")) {
+        throw new Exception("gcsSandboxBucket not populated")
+      }
       ZamboniSubmissionResult("f00ba4", "SUBMITTED")
     }
   }

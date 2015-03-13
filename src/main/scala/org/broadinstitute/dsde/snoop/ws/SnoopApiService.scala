@@ -23,20 +23,8 @@ trait SnoopApiService extends HttpService {
   import WorkflowExecutionJsonSupport._
   import SprayJsonSupport._
 
-<<<<<<< HEAD
-  def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution) : ZamboniSubmission = {
-    var zamboniWorkflow = exeMessage.workflowParameters
-    zamboniWorkflow += ("gcsSandboxBucket" -> "gs://broad-dsde-dev-public/snoop")
-    val zamboniRequest = ZamboniWorkflow(Map("workflow"-> exeMessage.workflowId), zamboniWorkflow)
-    val zamboniRequestString = zamboniRequest.toJson.toString
-    val zamboniMessage = ZamboniSubmission("some-token", zamboniRequestString)
-    zamboniMessage
-  }
-
-=======
   val zamboniApi: ZamboniApi
   
->>>>>>> refactoring, config, status end point
   val snoopRoute =
     path("") {
       get {
