@@ -56,12 +56,12 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
     }
   }
   
-  def status(workflowExecution: WorkflowExecution) {
-    log.info("Getting status for workflow: ", workflowExecution)
-    zamboniApi.status(workflowExecution.id.get) onComplete {
+  def status(id: String) {
+    log.info("Getting status for workflow: ", id)
+    zamboniApi.status(id) onComplete {
       case Success(response: ZamboniSubmissionResult) =>
         log.info("The workflowId is: {} with status {}", response.workflowId, response.status)
-        requestContext.complete(zamMessages2Snoop(workflowExecution, response))
+        requestContext.complete(zamMessages2Snoop(WorkflowExecution(None, Map.empty, "workflow_id", "callback", None), response))
 
       case Failure(error) =>
         requestContext.complete(error)

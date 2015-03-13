@@ -62,16 +62,15 @@ trait SnoopApiService extends HttpService {
     } ~
     path("workflowExecutions" / Segment) { id =>
       respondWithMediaType(`application/json`) {
-        complete {
-          //placeholder to call the getStatus api
-          WorkflowExecution(Option(id), Map.empty, "workflow_id", "callback", Some("running"))
-        }
+        requestContext =>
+          val executionService = actorRefFactory.actorOf(Props(ZamboniWorkflowExecutionService(requestContext, zamboniApi)))
+          executionService ! WorkflowStatus(id)
       }
     }
 }
 
 case class WorkflowStart(workflowExecution: WorkflowExecution)
-case class WorkflowStatus(workflowExecution: WorkflowExecution)
+case class WorkflowStatus(id: String)
 
 trait WorkflowExecutionService extends Actor {
   val requestContext: RequestContext
@@ -83,7 +82,7 @@ trait WorkflowExecutionService extends Actor {
 
   override def receive = {
     case WorkflowStart(workflowExecution) => start(workflowExecution)
-    case WorkflowStatus(workflowExecution) => status(workflowExecution)
+    case WorkflowStatus(id) => status(id)
       
     context.stop(self)
   }
@@ -97,5 +96,5 @@ trait WorkflowExecutionService extends Actor {
   /**
    * Gets status of a workflow execution, emits response directly to requestContext
    */
-  def status(workflowExecution: WorkflowExecution)
+  def status(id: String)
 }
