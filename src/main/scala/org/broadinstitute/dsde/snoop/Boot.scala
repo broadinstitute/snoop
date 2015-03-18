@@ -14,14 +14,10 @@ import java.io.File
 object Boot extends App {
 
   // we need an ActorSystem to host our application in
-  implicit val system = ActorSystem("on-spray-can")
+  implicit val system = ActorSystem("snoop")
   
   val conf = ConfigFactory.parseFile(new File("/etc/snoop.conf"))
 
-  /*
-    So now the definition of how to go from a RequestContext to a Props is contained outside of the Snoop layer altogether
-    and can be determined however we want.
-   */
   val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(StandardZamboniApi(conf.getString("zamboni.server")))
 
   // create and start our service actor

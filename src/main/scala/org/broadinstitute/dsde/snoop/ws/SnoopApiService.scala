@@ -49,39 +49,44 @@ trait SnoopApiService extends HttpService {
       post {
         entity(as[WorkflowExecution]) { workflowExecution =>
           requestContext =>
-            /*
-              Yeah, there's still the raw Props in here, I'm sure this could be worked around somehow, it's late
-             */
-            val executionService = actorRefFactory.actorOf(Props(executionServiceHandler(requestContext)))
-            executionService ! WorkflowStart(workflowExecution)
+            val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
+            executionService ! WorkflowExecutionService.WorkflowStart(workflowExecution)
         }
       }
     } ~
     path("workflowExecutions" / Segment) { id =>
       respondWithMediaType(`application/json`) {
         requestContext =>
-          val executionService = actorRefFactory.actorOf(Props(executionServiceHandler(requestContext)))
-          executionService ! WorkflowStatus(id)
+          val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
+          executionService ! WorkflowExecutionService.WorkflowStatus(id)
       }
     }
 }
 
-case class WorkflowStart(workflowExecution: WorkflowExecution)
-case class WorkflowStatus(id: String)
+object WorkflowExecutionService {
+  case class WorkflowStart(workflowExecution: WorkflowExecution)
+  case class WorkflowStatus(id: String)
+
+  def props(executionServiceHandler: RequestContext => WorkflowExecutionService, requestContext: RequestContext): Props = {
+    Props(executionServiceHandler(requestContext))
+  }
+
+}
 
 trait WorkflowExecutionService extends Actor {
   val requestContext: RequestContext
 
   implicit val system = context.system
-  import system.dispatcher
   val log = Logging(system, getClass)
 
 
   override def receive = {
-    case WorkflowStart(workflowExecution) => start(workflowExecution)
-    case WorkflowStatus(id) => status(id)
-      
-    context.stop(self)
+    case WorkflowExecutionService.WorkflowStart(workflowExecution) =>
+      start(workflowExecution)
+      context.stop(self)
+    case WorkflowExecutionService.WorkflowStatus(id) =>
+      status(id)
+      context.stop(self)
   }
 
   /**
