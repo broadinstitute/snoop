@@ -45,7 +45,7 @@ case class StandardZamboniApi(zamboniServer: String)(implicit val system: ActorS
 }
 
 object ZamboniWorkflowExecutionService {
-  def props(zamboniApi: ZamboniApi)(requestContext: RequestContext): Props = Props(new ZamboniWorkflowExecutionService(requestContext, zamboniApi))
+  def apply(zamboniApi: ZamboniApi)(requestContext: RequestContext): ZamboniWorkflowExecutionService = new ZamboniWorkflowExecutionService(requestContext, zamboniApi)
 }
 
 case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zamboniApi: ZamboniApi) extends WorkflowExecutionService {

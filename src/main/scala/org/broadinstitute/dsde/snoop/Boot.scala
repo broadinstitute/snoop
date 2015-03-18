@@ -22,10 +22,10 @@ object Boot extends App {
     So now the definition of how to go from a RequestContext to a Props is contained outside of the Snoop layer altogether
     and can be determined however we want.
    */
-  val executionServicePropsFunc: RequestContext => Props = ZamboniWorkflowExecutionService.props(StandardZamboniApi(conf.getString("zamboni.server")))
+  val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(StandardZamboniApi(conf.getString("zamboni.server")))
 
   // create and start our service actor
-  val service = system.actorOf(SnoopApiServiceActor.props(executionServicePropsFunc), "snoop-service")
+  val service = system.actorOf(SnoopApiServiceActor.props(executionServiceHandler), "snoop-service")
 
   implicit val timeout = Timeout(5.seconds)
   // start a new HTTP server on port 8080 with our service actor as the handler

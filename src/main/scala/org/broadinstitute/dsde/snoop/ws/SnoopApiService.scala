@@ -12,14 +12,16 @@ import org.broadinstitute.dsde.snoop.ws._
 import akka.event.Logging
 
 object SnoopApiServiceActor {
-  def props(executionServicePropsFunc: RequestContext => Props): Props = Props(new SnoopApiServiceActor(executionServicePropsFunc))
+  def props(executionServiceHandler: RequestContext => WorkflowExecutionService): Props = {
+    Props(new SnoopApiServiceActor(executionServiceHandler))
+  }
 }
 
-class SnoopApiServiceActor(executionServicePropsFunc: RequestContext => Props) extends Actor with SnoopApiService {
+class SnoopApiServiceActor(executionServiceHandler: RequestContext => WorkflowExecutionService) extends Actor with SnoopApiService {
   def actorRefFactory = context
   def receive = runRoute(snoopRoute)
 
-  override val executionServiceProps = executionServicePropsFunc
+  override val executionServiceHandlerSomething = executionServiceHandler
 }
 
 
@@ -29,7 +31,7 @@ trait SnoopApiService extends HttpService {
   import WorkflowExecutionJsonSupport._
   import SprayJsonSupport._
 
-  def executionServiceProps: RequestContext => Props
+  def executionServiceHandlerSomething: RequestContext => WorkflowExecutionService
 
   val snoopRoute =
     path("") {
@@ -49,7 +51,10 @@ trait SnoopApiService extends HttpService {
       post {
         entity(as[WorkflowExecution]) { workflowExecution =>
           requestContext =>
-            val executionService = actorRefFactory.actorOf(executionServiceProps(requestContext))
+            /*
+              Yeah, there's still the raw Props in here, I'm sure this could be worked around somehow, it's late
+             */
+            val executionService = actorRefFactory.actorOf(Props(executionServiceHandlerSomething(requestContext)))
             executionService ! WorkflowStart(workflowExecution)
         }
       }
@@ -57,7 +62,7 @@ trait SnoopApiService extends HttpService {
     path("workflowExecutions" / Segment) { id =>
       respondWithMediaType(`application/json`) {
         requestContext =>
-          val executionService = actorRefFactory.actorOf(executionServiceProps(requestContext))
+          val executionService = actorRefFactory.actorOf(Props(executionServiceHandlerSomething(requestContext)))
           executionService ! WorkflowStatus(id)
       }
     }
