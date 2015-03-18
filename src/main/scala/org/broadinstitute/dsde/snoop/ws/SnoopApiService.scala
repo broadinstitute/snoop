@@ -17,11 +17,9 @@ object SnoopApiServiceActor {
   }
 }
 
-class SnoopApiServiceActor(executionServiceHandler: RequestContext => WorkflowExecutionService) extends Actor with SnoopApiService {
+class SnoopApiServiceActor(override val executionServiceHandler: RequestContext => WorkflowExecutionService) extends Actor with SnoopApiService {
   def actorRefFactory = context
   def receive = runRoute(snoopRoute)
-
-  override val executionServiceHandlerSomething = executionServiceHandler
 }
 
 
@@ -31,7 +29,7 @@ trait SnoopApiService extends HttpService {
   import WorkflowExecutionJsonSupport._
   import SprayJsonSupport._
 
-  def executionServiceHandlerSomething: RequestContext => WorkflowExecutionService
+  def executionServiceHandler: RequestContext => WorkflowExecutionService
 
   val snoopRoute =
     path("") {
@@ -54,7 +52,7 @@ trait SnoopApiService extends HttpService {
             /*
               Yeah, there's still the raw Props in here, I'm sure this could be worked around somehow, it's late
              */
-            val executionService = actorRefFactory.actorOf(Props(executionServiceHandlerSomething(requestContext)))
+            val executionService = actorRefFactory.actorOf(Props(executionServiceHandler(requestContext)))
             executionService ! WorkflowStart(workflowExecution)
         }
       }
@@ -62,7 +60,7 @@ trait SnoopApiService extends HttpService {
     path("workflowExecutions" / Segment) { id =>
       respondWithMediaType(`application/json`) {
         requestContext =>
-          val executionService = actorRefFactory.actorOf(Props(executionServiceHandlerSomething(requestContext)))
+          val executionService = actorRefFactory.actorOf(Props(executionServiceHandler(requestContext)))
           executionService ! WorkflowStatus(id)
       }
     }
