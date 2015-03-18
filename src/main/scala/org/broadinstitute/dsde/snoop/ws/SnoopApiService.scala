@@ -1,6 +1,7 @@
 package org.broadinstitute.dsde.snoop
 
 import akka.actor.{Props, Actor}
+import com.typesafe.config.Config
 import spray.httpx.SprayJsonSupport
 import spray.routing._
 import spray.json._
@@ -10,10 +11,15 @@ import spray.routing.Directive.pimpApply
 import org.broadinstitute.dsde.snoop.ws._
 import akka.event.Logging
 
-class SnoopApiServiceActor(zamboniServer: String) extends Actor with SnoopApiService {
+object SnoopApiServiceActor {
+  def props(executionServicePropsFunc: RequestContext => Props): Props = Props(new SnoopApiServiceActor(executionServicePropsFunc))
+}
+
+class SnoopApiServiceActor(executionServicePropsFunc: RequestContext => Props) extends Actor with SnoopApiService {
   def actorRefFactory = context
   def receive = runRoute(snoopRoute)
-  val zamboniApi = new ZamboniApiImpl(zamboniServer)(context.system)
+
+  override val executionServiceProps = executionServicePropsFunc
 }
 
 
@@ -23,8 +29,8 @@ trait SnoopApiService extends HttpService {
   import WorkflowExecutionJsonSupport._
   import SprayJsonSupport._
 
-  val zamboniApi: ZamboniApi
-  
+  def executionServiceProps: RequestContext => Props
+
   val snoopRoute =
     path("") {
       get {
@@ -43,7 +49,7 @@ trait SnoopApiService extends HttpService {
       post {
         entity(as[WorkflowExecution]) { workflowExecution =>
           requestContext =>
-            val executionService = actorRefFactory.actorOf(Props(ZamboniWorkflowExecutionService(requestContext, zamboniApi)))
+            val executionService = actorRefFactory.actorOf(executionServiceProps(requestContext))
             executionService ! WorkflowStart(workflowExecution)
         }
       }
@@ -51,7 +57,7 @@ trait SnoopApiService extends HttpService {
     path("workflowExecutions" / Segment) { id =>
       respondWithMediaType(`application/json`) {
         requestContext =>
-          val executionService = actorRefFactory.actorOf(Props(ZamboniWorkflowExecutionService(requestContext, zamboniApi)))
+          val executionService = actorRefFactory.actorOf(executionServiceProps(requestContext))
           executionService ! WorkflowStatus(id)
       }
     }

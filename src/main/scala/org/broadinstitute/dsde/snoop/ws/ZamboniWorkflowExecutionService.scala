@@ -2,8 +2,9 @@ package org.broadinstitute.dsde.snoop.ws
 
 
 
-import akka.actor.{Actor, ActorRef, ActorSystem}
+import akka.actor.{Props, Actor, ActorRef, ActorSystem}
 import akka.event.Logging
+import com.typesafe.config.Config
 import spray.json._
 import spray.routing.RequestContext
 import spray.httpx.SprayJsonSupport
@@ -20,7 +21,10 @@ trait ZamboniApi {
   def status(zamboniId: String): Future[ZamboniSubmissionResult]
 }
 
-class ZamboniApiImpl(zamboniServer: String)(implicit val system: ActorSystem) extends ZamboniApi {
+/**
+ * Zamboni API representation for standard (i.e. non-stubbed) purposes
+ */
+case class StandardZamboniApi(zamboniServer: String)(implicit val system: ActorSystem) extends ZamboniApi {
   import system.dispatcher
   
   def start(zamboniSubmission: ZamboniSubmission): Future[ZamboniSubmissionResult] = {
@@ -38,6 +42,10 @@ class ZamboniApiImpl(zamboniServer: String)(implicit val system: ActorSystem) ex
       Get(s"$zamboniServer/status/$zamboniId")
     }
   }
+}
+
+object ZamboniWorkflowExecutionService {
+  def props(zamboniApi: ZamboniApi)(requestContext: RequestContext): Props = Props(new ZamboniWorkflowExecutionService(requestContext, zamboniApi))
 }
 
 case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zamboniApi: ZamboniApi) extends WorkflowExecutionService {
