@@ -20,9 +20,8 @@ import org.broadinstitute.dsde.snoop.ws.ZamboniWorkflowExecutionService
 
 class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRouteTest with Matchers {
   def actorRefFactory = system
-  val zamboniApi = MockZamboniApi
-  
-  val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi)
+
+  val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test")
 
   "Snoop" should "return a greeting for GET requests to the root path" in {
     Get() ~> snoopRoute ~> check {

@@ -18,7 +18,8 @@ object Boot extends App {
   
   val conf = ConfigFactory.parseFile(new File("/etc/snoop.conf"))
 
-  val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(StandardZamboniApi(conf.getString("zamboni.server")))
+  val executionServiceHandler: RequestContext => WorkflowExecutionService =
+    ZamboniWorkflowExecutionService(StandardZamboniApi(conf.getString("zamboni.server")), conf.getString("workflow.sandbox"))
 
   // create and start our service actor
   val service = system.actorOf(SnoopApiServiceActor.props(executionServiceHandler), "snoop-service")

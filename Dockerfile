@@ -8,7 +8,6 @@ EXPOSE 8080
 CMD ["/sbin/my_init"]
 
 # Install Snoop
-ADD . /snoop
 RUN apt-get update && apt-get install -y wget && \
     add-apt-repository "deb http://archive.ubuntu.com/ubuntu $(lsb_release -sc) multiverse" && \
     add-apt-repository -y ppa:webupd8team/java && \
@@ -24,6 +23,7 @@ RUN apt-get update && apt-get install -y wget && \
     apt-get install -y scala sbt && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /*.deb
 
+ADD . /snoop
 RUN ["/bin/bash", "-c", "/snoop/docker/install.sh /snoop"]
 
 # Add Snoop as a service (it will start when the container starts)
