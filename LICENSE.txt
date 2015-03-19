@@ -1,4 +1,3 @@
-/*
 Copyright (c) 2015, Broad Institute, Inc.
 All rights reserved.
  
@@ -26,39 +25,3 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
- */
-
-package org.broadinstitute.dsde.snoop.ws
-
-import spray.json.DefaultJsonProtocol
-
-class SnoopApiFormats {
-  
-}
-
-case class WorkflowExecution(
-    id: Option[String], 
-    workflowParameters: Map[String, String],
-    workflowId: String, 
-    callbackUri: String,
-    status: Option[String])
-
-case class ZamboniWorkflow(
-    Zamboni: Map[String, String],
-    workflow: Map[String, String])
-
-case class ZamboniSubmission(
-    authToken: String,
-    requestString: String)
-
-case class ZamboniSubmissionResult(
-    workflowId: String,
-    status: String)
-
-
-object WorkflowExecutionJsonSupport extends DefaultJsonProtocol {
-  implicit val AnalysisFormat = jsonFormat5(WorkflowExecution)
-  implicit val ZamboniSubmissionFormat = jsonFormat2(ZamboniSubmission)
-  implicit val ZamboniSubmissionResultFormat = jsonFormat2(ZamboniSubmissionResult)
-  implicit val ZamboniWorkflowFormat = jsonFormat2(ZamboniWorkflow)
-}
