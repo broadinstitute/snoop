@@ -4,18 +4,26 @@ package org.broadinstitute.dsde.snoop.ws
 import java.util.UUID
 
 import akka.actor.{Props, Actor, ActorRef, ActorSystem}
-import akka.event.Logging
-import com.typesafe.config.Config
-import spray.json._
+import org.broadinstitute.dsde.snoop.ws.WorkflowParameter.WorkflowParameter
 import spray.routing.RequestContext
 import spray.httpx.SprayJsonSupport
 import spray.client.pipelining._
-import WorkflowExecutionJsonSupport._
 import org.broadinstitute.dsde.snoop.WorkflowExecutionService
 import scala.concurrent.Future
 
 import scala.util.{ Success, Failure }
 import SprayJsonSupport._
+import spray.json._
+
+case class ZamboniSubmission(authToken: String, requestString: String)
+case class ZamboniSubmissionResult(workflowId: String, status: String)
+
+object ZamboniJsonSupport extends DefaultJsonProtocol {
+  implicit val ZamboniSubmissionFormat = jsonFormat2(ZamboniSubmission)
+  implicit val ZamboniSubmissionResultFormat = jsonFormat2(ZamboniSubmissionResult)
+}
+
+import ZamboniJsonSupport._
 
 trait ZamboniApi {
   def start(zamboniSubmission: ZamboniSubmission): Future[ZamboniSubmissionResult]
@@ -51,7 +59,8 @@ object ZamboniWorkflowExecutionService {
 
 case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zamboniApi: ZamboniApi, gcsSandboxBucket: String) extends WorkflowExecutionService {
   import system.dispatcher
-  
+  import WorkflowExecutionJsonSupport._
+
   def start(workflowExecution: WorkflowExecution) : Unit = {
     log.info("Submitting workflow: ", workflowExecution)
 
@@ -82,7 +91,15 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
   }
 
   def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution) : ZamboniSubmission = {
-    val zamboniRequest = ZamboniWorkflow(Map("workflow"-> exeMessage.workflowId), exeMessage.workflowParameters + ("gcsSandboxBucket" -> (gcsSandboxBucket + UUID.randomUUID().toString)))
+    val workflowParameters: Map[String, WorkflowParameter] = exeMessage.workflowParameters + ("gcsSandboxBucket" -> WorkflowParameter(gcsSandboxBucket + UUID.randomUUID().toString))
+    import WorkflowExecutionJsonSupport._
+    val workflowJson = workflowParameters.toJson
+
+    val zamboniRequest = JsObject(Map(
+      ("Zamboni" -> JsObject(Map("workflow"-> JsString(exeMessage.workflowId)))),
+      ("workflow" -> workflowJson)
+    ))
+
     val zamboniRequestString = zamboniRequest.toJson.toString
     val zamboniMessage = ZamboniSubmission("some-token", zamboniRequestString)
     zamboniMessage
