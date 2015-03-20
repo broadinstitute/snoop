@@ -1,6 +1,7 @@
 package org.broadinstitute.dsde.snoop.ws
 
 
+import java.util.UUID
 
 import akka.actor.{Props, Actor, ActorRef, ActorSystem}
 import akka.event.Logging
@@ -45,10 +46,10 @@ case class StandardZamboniApi(zamboniServer: String)(implicit val system: ActorS
 }
 
 object ZamboniWorkflowExecutionService {
-  def apply(zamboniApi: ZamboniApi)(requestContext: RequestContext): ZamboniWorkflowExecutionService = new ZamboniWorkflowExecutionService(requestContext, zamboniApi)
+  def apply(zamboniApi: ZamboniApi, gcsSandboxBucket: String)(requestContext: RequestContext): ZamboniWorkflowExecutionService = new ZamboniWorkflowExecutionService(requestContext, zamboniApi, gcsSandboxBucket)
 }
 
-case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zamboniApi: ZamboniApi) extends WorkflowExecutionService {
+case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zamboniApi: ZamboniApi, gcsSandboxBucket: String) extends WorkflowExecutionService {
   import system.dispatcher
   
   def start(workflowExecution: WorkflowExecution) : Unit = {
@@ -81,7 +82,7 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
   }
 
   def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution) : ZamboniSubmission = {
-    val zamboniRequest = ZamboniWorkflow(Map("workflow"-> exeMessage.workflowId), exeMessage.workflowParameters + ("gcsSandboxBucket" -> "gs://broad-dsde-dev-public/snoop"))
+    val zamboniRequest = ZamboniWorkflow(Map("workflow"-> exeMessage.workflowId), exeMessage.workflowParameters + ("gcsSandboxBucket" -> (gcsSandboxBucket + UUID.randomUUID().toString)))
     val zamboniRequestString = zamboniRequest.toJson.toString
     val zamboniMessage = ZamboniSubmission("some-token", zamboniRequestString)
     zamboniMessage
