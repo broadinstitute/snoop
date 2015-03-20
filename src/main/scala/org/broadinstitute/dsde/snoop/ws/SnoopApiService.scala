@@ -45,6 +45,11 @@ trait SnoopApiService extends HttpService {
         }
       }
     } ~
+    path("headers") {
+      get {
+        requestContext => requestContext.complete(requestContext.request.headers.mkString(",\n"))
+      }
+    } ~
     path("workflowExecutions") {
       post {
         entity(as[WorkflowExecution]) { workflowExecution =>
