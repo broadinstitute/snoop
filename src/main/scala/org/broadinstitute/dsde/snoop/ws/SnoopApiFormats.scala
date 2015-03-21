@@ -1,34 +1,23 @@
 package org.broadinstitute.dsde.snoop.ws
 
-import spray.json.DefaultJsonProtocol
+import org.broadinstitute.dsde.snoop.ws.WorkflowParameter.WorkflowParameter
+import spray.json._
 
-class SnoopApiFormats {
-  
+object WorkflowParameter {
+  type WorkflowParameter = Either[String, Seq[String]]
+
+  def apply(value: String): WorkflowParameter = Left(value)
+  def apply(array: Seq[String]): WorkflowParameter = Right(array)
 }
 
 case class WorkflowExecution(
     id: Option[String], 
-    workflowParameters: Map[String, String],
+    workflowParameters: Map[String, WorkflowParameter],
     workflowId: String, 
     callbackUri: String,
-    status: Option[String])
-
-case class ZamboniWorkflow(
-    Zamboni: Map[String, String],
-    workflow: Map[String, String])
-
-case class ZamboniSubmission(
-    authToken: String,
-    requestString: String)
-
-case class ZamboniSubmissionResult(
-    workflowId: String,
-    status: String)
-
+    status: Option[String]) {
+}
 
 object WorkflowExecutionJsonSupport extends DefaultJsonProtocol {
   implicit val AnalysisFormat = jsonFormat5(WorkflowExecution)
-  implicit val ZamboniSubmissionFormat = jsonFormat2(ZamboniSubmission)
-  implicit val ZamboniSubmissionResultFormat = jsonFormat2(ZamboniSubmissionResult)
-  implicit val ZamboniWorkflowFormat = jsonFormat2(ZamboniWorkflow)
 }
