@@ -31,15 +31,30 @@ class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRo
           "workflowParameters": {"para1": "v1", "p2": "v2"},
           "workflowId":  "workflow_id",
           "callbackUri": "callback"}""")) ~>
-      sealRoute(snoopRoute) ~> check {
+      addHeader(HttpHeaders.`Cookie`(HttpCookie("iPlanetDirectoryPro", "test_token"))) ~>
+      sealRoute(snoopRoute) ~>
+      check {
       status === OK
       responseAs[WorkflowExecution] === WorkflowExecution(Some("f00ba4"), Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2"), "p3" -> WorkflowParameter(Seq("a", "b", "c"))), "workflow_id", "callback", Some("SUBMITTED"))
     }
   }
 
+  it should "return 400 for post to workflowExecution without auth cookie" in {
+    Post("/workflowExecutions", HttpEntity(ContentTypes.`application/json`, s"""{
+          "workflowParameters": {"para1": "v1", "p2": "v2"},
+          "workflowId":  "workflow_id",
+          "callbackUri": "callback"}""")) ~>
+      sealRoute(snoopRoute) ~>
+      check {
+        status === BadRequest
+      }
+  }
+
   it should "return 200 for get to workflowExecution" in {
     Get("/workflowExecutions/f00ba4") ~>
-      sealRoute(snoopRoute) ~> check {
+      addHeader(HttpHeaders.`Cookie`(HttpCookie("iPlanetDirectoryPro", "test_token"))) ~>
+      sealRoute(snoopRoute) ~>
+      check {
       status === OK
       responseAs[WorkflowExecution] === WorkflowExecution(Some("f00ba4"), Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2")), "workflow_id", "callback", Some("RUNNING"))
     }
@@ -104,6 +119,9 @@ object MockZamboniApi extends ZamboniApi {
   import scala.concurrent.ExecutionContext.Implicits.global
   def start(zamboniSubmission: ZamboniSubmission): Future[ZamboniSubmissionResult] = {
     Future {
+      if (!zamboniSubmission.authToken.equals("test_token")) {
+        throw new Exception("authToken not correctly populated in zamboni request")
+      }
       if (!zamboniSubmission.requestString.contains("gcsSandboxBucket")) {
         throw new Exception("gcsSandboxBucket not populated")
       }
