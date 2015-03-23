@@ -50,27 +50,30 @@ trait SnoopApiService extends HttpService {
         requestContext => requestContext.complete(requestContext.request.headers.mkString(",\n"))
       }
     } ~
-    path("workflowExecutions") {
-      post {
-        entity(as[WorkflowExecution]) { workflowExecution =>
-          requestContext =>
-            val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
-            executionService ! WorkflowExecutionService.WorkflowStart(workflowExecution)
+    cookie("iPlanetDirectoryPro") { securityTokenCookie =>
+      val securityToken = securityTokenCookie.content
+      path("workflowExecutions") {
+        post {
+          entity(as[WorkflowExecution]) { workflowExecution =>
+            requestContext =>
+              val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
+              executionService ! WorkflowExecutionService.WorkflowStart(workflowExecution, securityToken)
+          }
         }
-      }
-    } ~
-    path("workflowExecutions" / Segment) { id =>
-      respondWithMediaType(`application/json`) {
-        requestContext =>
-          val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
-          executionService ! WorkflowExecutionService.WorkflowStatus(id)
-      }
+      } ~
+        path("workflowExecutions" / Segment) { id =>
+          respondWithMediaType(`application/json`) {
+            requestContext =>
+              val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
+              executionService ! WorkflowExecutionService.WorkflowStatus(id, securityToken)
+          }
+        }
     }
 }
 
 object WorkflowExecutionService {
-  case class WorkflowStart(workflowExecution: WorkflowExecution)
-  case class WorkflowStatus(id: String)
+  case class WorkflowStart(workflowExecution: WorkflowExecution, securityToken: String)
+  case class WorkflowStatus(id: String, securityToken: String)
 
   def props(executionServiceHandler: RequestContext => WorkflowExecutionService, requestContext: RequestContext): Props = {
     Props(executionServiceHandler(requestContext))
@@ -86,11 +89,11 @@ trait WorkflowExecutionService extends Actor {
 
 
   override def receive = {
-    case WorkflowExecutionService.WorkflowStart(workflowExecution) =>
-      start(workflowExecution)
+    case WorkflowExecutionService.WorkflowStart(workflowExecution, securityToken) =>
+      start(workflowExecution, securityToken)
       context.stop(self)
-    case WorkflowExecutionService.WorkflowStatus(id) =>
-      status(id)
+    case WorkflowExecutionService.WorkflowStatus(id, securityToken) =>
+      status(id, securityToken)
       context.stop(self)
   }
 
@@ -98,10 +101,10 @@ trait WorkflowExecutionService extends Actor {
    * Starts a workflow execution, emits response directly to requestContext which should include
    * the id of the workflow execution
    */
-  def start(workflowExecution: WorkflowExecution)
+  def start(workflowExecution: WorkflowExecution, securityToken: String)
   
   /**
    * Gets status of a workflow execution, emits response directly to requestContext
    */
-  def status(id: String)
+  def status(id: String, securityToken: String)
 }

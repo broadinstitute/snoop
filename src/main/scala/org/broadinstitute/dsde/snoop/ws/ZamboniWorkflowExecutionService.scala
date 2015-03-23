@@ -61,10 +61,10 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
   import system.dispatcher
   import WorkflowExecutionJsonSupport._
 
-  def start(workflowExecution: WorkflowExecution) : Unit = {
+  def start(workflowExecution: WorkflowExecution, securityToken: String) : Unit = {
     log.info("Submitting workflow: ", workflowExecution)
 
-    zamboniApi.start(snoop2ZamboniWorkflow(workflowExecution)) onComplete {
+    zamboniApi.start(snoop2ZamboniWorkflow(workflowExecution, securityToken)) onComplete {
       case Success(response: ZamboniSubmissionResult) =>
         log.info("The workflowId is: {} with status {}", response.workflowId, response.status)
         requestContext.complete(zamMessages2Snoop(workflowExecution, response))
@@ -74,7 +74,7 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
     }
   }
   
-  def status(id: String) {
+  def status(id: String, securityToken: String) {
     log.info("Getting status for workflow: ", id)
     zamboniApi.status(id) onComplete {
       case Success(response: ZamboniSubmissionResult) =>
@@ -90,7 +90,7 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
     workflowExecution.copy(id = Option(zamResponse.workflowId), status = Option(zamResponse.status))
   }
 
-  def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution) : ZamboniSubmission = {
+  def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution, securityToken: String) : ZamboniSubmission = {
     val workflowParameters: Map[String, WorkflowParameter] = exeMessage.workflowParameters + ("gcsSandboxBucket" -> WorkflowParameter(gcsSandboxBucket + UUID.randomUUID().toString))
     import WorkflowExecutionJsonSupport._
     val workflowJson = workflowParameters.toJson
@@ -101,7 +101,7 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
     ))
 
     val zamboniRequestString = zamboniRequest.toJson.toString
-    val zamboniMessage = ZamboniSubmission("some-token", zamboniRequestString)
+    val zamboniMessage = ZamboniSubmission(securityToken, zamboniRequestString)
     zamboniMessage
   }
 
