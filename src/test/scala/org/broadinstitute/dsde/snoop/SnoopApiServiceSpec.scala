@@ -119,7 +119,7 @@ object MockZamboniApi extends ZamboniApi {
   import scala.concurrent.ExecutionContext.Implicits.global
   def start(zamboniSubmission: ZamboniSubmission): Future[ZamboniSubmissionResult] = {
     Future {
-      if (!zamboniSubmission.authToken.equals("test_token")) {
+      if (!zamboniSubmission.requestString.contains("test_token")) {
         throw new Exception("authToken not correctly populated in zamboni request")
       }
       if (!zamboniSubmission.requestString.contains("gcsSandboxBucket")) {
