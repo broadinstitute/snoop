@@ -15,11 +15,11 @@ import scala.util.{ Success, Failure }
 import SprayJsonSupport._
 import spray.json._
 
-case class ZamboniSubmission(authToken: String, requestString: String)
+case class ZamboniSubmission(requestString: String)
 case class ZamboniSubmissionResult(workflowId: String, status: String)
 
 object ZamboniJsonSupport extends DefaultJsonProtocol {
-  implicit val ZamboniSubmissionFormat = jsonFormat2(ZamboniSubmission)
+  implicit val ZamboniSubmissionFormat = jsonFormat1(ZamboniSubmission)
   implicit val ZamboniSubmissionResultFormat = jsonFormat2(ZamboniSubmissionResult)
 }
 
@@ -91,7 +91,10 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
   }
 
   def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution, securityToken: String) : ZamboniSubmission = {
-    val workflowParameters: Map[String, WorkflowParameter] = exeMessage.workflowParameters + ("gcsSandboxBucket" -> WorkflowParameter(gcsSandboxBucket + UUID.randomUUID().toString))
+    val workflowParameters: Map[String, WorkflowParameter] =
+      exeMessage.workflowParameters ++
+        Map(("gcsSandboxBucket" -> WorkflowParameter(gcsSandboxBucket + UUID.randomUUID().toString)),
+            ("authToken" -> WorkflowParameter(securityToken)))
     import WorkflowExecutionJsonSupport._
     val workflowJson = workflowParameters.toJson
 
@@ -101,7 +104,7 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
     ))
 
     val zamboniRequestString = zamboniRequest.toJson.toString
-    val zamboniMessage = ZamboniSubmission(securityToken, zamboniRequestString)
+    val zamboniMessage = ZamboniSubmission(zamboniRequestString)
     zamboniMessage
   }
 
