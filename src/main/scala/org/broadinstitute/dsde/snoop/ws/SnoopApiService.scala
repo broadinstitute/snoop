@@ -1,6 +1,6 @@
 package org.broadinstitute.dsde.snoop
 
-import akka.actor.{Props, Actor}
+import akka.actor.{ActorRefFactory, Props, Actor}
 import com.typesafe.config.Config
 import spray.httpx.SprayJsonSupport
 import spray.routing._
@@ -18,47 +18,29 @@ import java.io.File
 import com.typesafe.config.{Config, ConfigFactory}
 
 object SnoopApiServiceActor {
-  def props(executionServiceHandler: RequestContext => WorkflowExecutionService): Props = {
-    Props(new SnoopApiServiceActor(executionServiceHandler))
+  def props(executionServiceHandler: RequestContext => WorkflowExecutionService, swaggerService: SwaggerService): Props = {
+    Props(new SnoopApiServiceActor(executionServiceHandler, swaggerService))
   }
 }
 
-class SnoopApiServiceActor(override val executionServiceHandler: RequestContext => WorkflowExecutionService) extends Actor with BaseSnoopApiService with WorkflowExecutionApiService {
+class SwaggerService(override val apiVersion: String,
+                     override val baseUrl: String,
+                     override val docsPath: String,
+                     override val swaggerVersion: String,
+                     override val apiTypes: Seq[Type],
+                     override val apiInfo: Option[ApiInfo])(implicit val actorRefFactory: ActorRefFactory) extends SwaggerHttpService
+
+class SnoopApiServiceActor(override val executionServiceHandler: RequestContext => WorkflowExecutionService, swaggerService: SwaggerService) extends Actor with RootSnoopApiService with WorkflowExecutionApiService {
   implicit def executionContext = actorRefFactory.dispatcher
   def actorRefFactory = context
   def possibleRoutes = baseRoute ~ workflowRoutes ~ swaggerService.routes 
 
   def receive = runRoute(possibleRoutes)
-
-  private val snoopConfig: Config = ConfigFactory.parseFile(new File("/etc/snoop.conf"))
-  private val swaggerConfig = snoopConfig.getConfig("swagger")
-
-  val swaggerService = new SwaggerHttpService {
-    override def apiTypes = Seq(typeOf[BaseSnoopApiService], typeOf[WorkflowExecutionApiService])
-
-    override def apiVersion = swaggerConfig.getString("apiVersion")
-    override def baseUrl = swaggerConfig.getString("baseUrl")
-    override def docsPath = swaggerConfig.getString("apiDocs")
-    override def actorRefFactory = context
-    override def swaggerVersion = swaggerConfig.getString("swaggerVersion")
-
-    override def apiInfo = Some(
-      new ApiInfo(
-        swaggerConfig.getString("info"),
-        swaggerConfig.getString("description"),
-        swaggerConfig.getString("termsOfServiceUrl"),
-        swaggerConfig.getString("contact"),
-        swaggerConfig.getString("license"),
-        swaggerConfig.getString("licenseUrl"))
-    )
-  }
+  def apiTypes = Seq(typeOf[RootSnoopApiService], typeOf[WorkflowExecutionApiService])
 }
 
 @Api(value = "", description = "Snoop Base API", position = 1)
-trait BaseSnoopApiService extends HttpService {
-  import WorkflowExecutionJsonSupport._
-  import SprayJsonSupport._
-
+trait RootSnoopApiService extends HttpService {
   def executionServiceHandler: RequestContext => WorkflowExecutionService
 
   @ApiOperation(value = "Check if Snoop is alive",
