@@ -15,7 +15,7 @@ import spray.testkit.ScalatestRouteTest
 import scala.concurrent.Future
 import spray.routing.RequestContext
 
-class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with WorkflowExecutionApiService with ScalatestRouteTest with Matchers {
+class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with WorkflowExecutionApiService with ScalatestRouteTest with Matchers with TestDatabase {
   def actorRefFactory = system
 
   val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test")
