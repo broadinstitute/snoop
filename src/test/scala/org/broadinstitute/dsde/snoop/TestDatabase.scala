@@ -37,8 +37,8 @@ object TestDatabase {
     val connectionConstructor = connectionClass.getConstructor(classOf[Connection])
     val conn: DatabaseConnection = connectionConstructor.newInstance(holdingConnection).asInstanceOf[DatabaseConnection]
     liquibase = new Liquibase(DatabaseConfig.liquibaseChangeLog, resourceAccessor, conn)
-    liquibase.dropAll()
-    ChangeLogHistoryServiceFactory.getInstance().resetAll()
+    //liquibase.dropAll()
+    //ChangeLogHistoryServiceFactory.getInstance().resetAll()
     liquibase.update(contexts)
     conn.close()
   }

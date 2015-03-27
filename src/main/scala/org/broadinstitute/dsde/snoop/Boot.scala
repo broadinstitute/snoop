@@ -13,12 +13,21 @@ import com.typesafe.config.ConfigFactory
 import java.io.File
 import scala.reflect.runtime.universe._
 
+import scala.sys.process.Process
+
 object Boot extends App {
+  val conf = ConfigFactory.parseFile(new File("/etc/snoop.conf"))
+  //set system properties for ssl db connection
+  System.setProperty("javax.net.ssl.trustStore", conf.getString("ssl.truststore"))
+  System.setProperty("javax.net.ssl.trustStorePassword", conf.getString("ssl.tsPasswd"))
+  System.setProperty("javax.net.ssl.keyStore", conf.getString("ssl.keystore"))
+  System.setProperty("javax.net.ssl.keyStorePassword", conf.getString("ssl.ksPasswd"))
+  Process("env", None,
+    "JAVA_TOOL_OPTIONS" -> "-Djavax.net.ssl.trustStore=/etc/truststore;-Djavax.net.ssl.trustStorePassword=truststore;-Djavax.net.ssl.keyStore=/Users/plin/github/snoop/keystore;-Djavax.net.ssl.keyStorePassword=keystore")
 
   // we need an ActorSystem to host our application in
   implicit val system = ActorSystem("snoop")
-  
-  val conf = ConfigFactory.parseFile(new File("/etc/snoop.conf"))
+
 
   val executionServiceHandler: RequestContext => WorkflowExecutionService =
     ZamboniWorkflowExecutionService(StandardZamboniApi(conf.getString("zamboni.server")), conf.getString("workflow.sandbox"))
