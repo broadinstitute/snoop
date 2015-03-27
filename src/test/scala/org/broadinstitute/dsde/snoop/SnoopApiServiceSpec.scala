@@ -15,13 +15,13 @@ import spray.testkit.ScalatestRouteTest
 import scala.concurrent.Future
 import spray.routing.RequestContext
 
-class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRouteTest with Matchers {
+class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with WorkflowExecutionApiService with ScalatestRouteTest with Matchers {
   def actorRefFactory = system
 
   val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test")
 
   "Snoop" should "return a greeting for GET requests to the root path" in {
-    Get() ~> snoopRoute ~> check {
+    Get() ~> baseRoute ~> check {
       responseAs[String] should include("Snoop web service is operational")
     }
   }
@@ -32,7 +32,7 @@ class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRo
           "workflowId":  "workflow_id",
           "callbackUri": "callback"}""")) ~>
       addHeader(HttpHeaders.`Cookie`(HttpCookie("iPlanetDirectoryPro", "test_token"))) ~>
-      sealRoute(snoopRoute) ~>
+      sealRoute(startWorkflowRoute) ~>
       check {
       status === OK
       responseAs[WorkflowExecution] === WorkflowExecution(Some("f00ba4"), Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2"), "p3" -> WorkflowParameter(Seq("a", "b", "c"))), "workflow_id", "callback", Some("SUBMITTED"))
@@ -44,7 +44,7 @@ class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRo
           "workflowParameters": {"para1": "v1", "p2": "v2"},
           "workflowId":  "workflow_id",
           "callbackUri": "callback"}""")) ~>
-      sealRoute(snoopRoute) ~>
+      sealRoute(startWorkflowRoute) ~>
       check {
         status === BadRequest
       }
@@ -53,7 +53,7 @@ class SnoopApiServiceSpec extends FlatSpec with SnoopApiService with ScalatestRo
   it should "return 200 for get to workflowExecution" in {
     Get("/workflowExecutions/f00ba4") ~>
       addHeader(HttpHeaders.`Cookie`(HttpCookie("iPlanetDirectoryPro", "test_token"))) ~>
-      sealRoute(snoopRoute) ~>
+      sealRoute(workflowStatusRoute) ~>
       check {
       status === OK
       responseAs[WorkflowExecution] === WorkflowExecution(Some("f00ba4"), Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2")), "workflow_id", "callback", Some("RUNNING"))
