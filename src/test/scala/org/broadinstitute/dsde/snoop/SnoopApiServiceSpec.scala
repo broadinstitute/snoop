@@ -1,5 +1,6 @@
 package org.broadinstitute.dsde.snoop
 
+import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
 import org.broadinstitute.dsde.snoop.ws.WorkflowParameter.WorkflowParameter
 import org.broadinstitute.dsde.snoop.ws._
 import org.scalatest.FlatSpec
@@ -15,10 +16,10 @@ import spray.testkit.ScalatestRouteTest
 import scala.concurrent.Future
 import spray.routing.RequestContext
 
-class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with WorkflowExecutionApiService with ScalatestRouteTest with Matchers {
+class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with WorkflowExecutionApiService with ScalatestRouteTest with Matchers with TestDatabase {
   def actorRefFactory = system
 
-  val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test")
+  val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test", new SnoopSubmissionController(() => TestDatabase.db, DatabaseConfig.slickDriver))
 
   "Snoop" should "return a greeting for GET requests to the root path" in {
     Get() ~> baseRoute ~> check {

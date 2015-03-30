@@ -1,0 +1,37 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <changeSet id="schema_snoop" author="plin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="SUBMISSION"/>
+            </not>
+        </preConditions>
+        <comment>Create table</comment>
+
+        <createTable tableName="SUBMISSION">
+            <column name="ID" autoIncrement="true" type="int">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="SUBMISSION_ID" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="SUBMISSION_DATE" type="timestamp"/>
+            <column name="MODIFIED_DATE" type="timestamp"/>
+            <column name="CALLBACK_URI" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="STATUS" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex indexName="SUBMISSION_BY_SUBMISSIONID_IDX" tableName="SUBMISSION" unique="false">
+            <column name="SUBMISSION_ID"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
