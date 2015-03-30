@@ -1,16 +1,9 @@
-package org.broadinstitute.dsde.snoop.data
+package org.broadinstitute.dsde.snoop.dataaccess
 
 import java.sql.Timestamp
 
-case class Submission
-(
-  submissionId: String,
-  submissionDate: Option[Timestamp] = None,
-  modifiedDate: Option[Timestamp] = None,
-  callbackUri: String,
-  status: String,
-  id: Option[Int] = None
-)
+import org.broadinstitute.dsde.snoop.model.Submission
+
 
 trait SubmissionComponent {
   this: DriverComponent =>

@@ -2,7 +2,10 @@ package org.broadinstitute.dsde.snoop
 
 import java.sql.Timestamp
 
-import org.broadinstitute.dsde.snoop.data.{Submission, SnoopSubmissionController}
+import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
+import org.broadinstitute.dsde.snoop.model.Submission
+
+import scala.slick.jdbc.JdbcBackend._
 
 /**
  * Created by plin on 3/25/15.
@@ -12,10 +15,10 @@ class SnoopControllerSpec extends SnoopDatabaseSpec {
 
   "SnoopController" - {
     "should insert and retrieve an attribute" in {
-      val da = SnoopSubmissionController.dataAccess
-      val db = SnoopSubmissionController.database
+      val snoopSubmissionController = new SnoopSubmissionController(() => TestDatabase.db, DatabaseConfig.slickDriver)
+      val da = snoopSubmissionController.dataAccess
 
-      db withTransaction {
+      TestDatabase.db withTransaction {
         implicit session => {
           val sInsert = da.insertSubmission(Submission("f00ba4", Option(new Timestamp(System.currentTimeMillis())), null, "gs://test_location", "Submitted"))
           val sSelect = da.getSubmissionBySubmissionId("f00ba4")

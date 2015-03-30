@@ -2,11 +2,13 @@ package org.broadinstitute.dsde.snoop
 
 import java.sql.{Connection, DriverManager}
 
+import com.typesafe.config.ConfigFactory
 import liquibase.Liquibase
 import liquibase.changelog.ChangeLogHistoryServiceFactory
 import liquibase.database.DatabaseConnection
 import liquibase.resource.{FileSystemResourceAccessor, ResourceAccessor}
-import org.broadinstitute.dsde.snoop.SnoopConfig.DatabaseConfig
+
+import scala.slick.jdbc.JdbcBackend._
 
 trait TestDatabase {
   TestDatabase.checkStarted()
@@ -44,9 +46,19 @@ object TestDatabase {
   }
 
   private def getConnectionImpl: Connection = {
-    DriverManager.getConnection(
-      DatabaseConfig.jdbcUrl,
-      DatabaseConfig.jdbcUser,
-      DatabaseConfig.jdbcPassword)
+    DriverManager.getConnection(DatabaseConfig.jdbcUrl)
   }
+
+  val db = Database.forURL(DatabaseConfig.jdbcUrl, driver = DatabaseConfig.jdbcDriver)
+
+}
+
+object DatabaseConfig {
+  private val database = ConfigFactory.load().getConfig("database")
+  lazy val slickDriver = database.getString("slick.driver")
+  lazy val liquibaseSetup = database.hasPath("liquibase")
+  lazy val liquibaseChangeLog = database.getString("liquibase.changelog")
+  lazy val liquibaseConnection = database.getString("liquibase.connection")
+  lazy val jdbcUrl = database.getString("jdbc.url")
+  lazy val jdbcDriver = database.getString("jdbc.driver")
 }

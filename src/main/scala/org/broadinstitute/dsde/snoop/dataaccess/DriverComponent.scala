@@ -1,4 +1,4 @@
-package org.broadinstitute.dsde.snoop.data
+package org.broadinstitute.dsde.snoop.dataaccess
 
 import scala.slick.driver.JdbcProfile
 

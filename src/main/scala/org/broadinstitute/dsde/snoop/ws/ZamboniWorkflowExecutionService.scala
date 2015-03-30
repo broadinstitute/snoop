@@ -4,7 +4,7 @@ package org.broadinstitute.dsde.snoop.ws
 import java.util.UUID
 
 import akka.actor.{Props, Actor, ActorRef, ActorSystem}
-import org.broadinstitute.dsde.snoop.data.SnoopSubmissionController
+import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
 import org.broadinstitute.dsde.snoop.ws.WorkflowParameter.WorkflowParameter
 import spray.routing.RequestContext
 import spray.httpx.SprayJsonSupport
@@ -55,10 +55,11 @@ case class StandardZamboniApi(zamboniServer: String)(implicit val system: ActorS
 }
 
 object ZamboniWorkflowExecutionService {
-  def apply(zamboniApi: ZamboniApi, gcsSandboxBucket: String)(requestContext: RequestContext): ZamboniWorkflowExecutionService = new ZamboniWorkflowExecutionService(requestContext, zamboniApi, gcsSandboxBucket)
+  def apply(zamboniApi: ZamboniApi, gcsSandboxBucket: String, snoopSubmissionController: SnoopSubmissionController)(requestContext: RequestContext): ZamboniWorkflowExecutionService =
+    new ZamboniWorkflowExecutionService(requestContext, zamboniApi, gcsSandboxBucket, snoopSubmissionController)
 }
 
-case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zamboniApi: ZamboniApi, gcsSandboxBucket: String) extends WorkflowExecutionService {
+case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zamboniApi: ZamboniApi, gcsSandboxBucket: String, snoopSubmissionController: SnoopSubmissionController) extends WorkflowExecutionService {
   import system.dispatcher
   import WorkflowExecutionJsonSupport._
 
@@ -69,7 +70,7 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
       case Success(response: ZamboniSubmissionResult) =>
         log.info("The workflowId is: {} with status {}", response.workflowId, response.status)
         requestContext.complete(zamMessages2Snoop(workflowExecution, response))
-        SnoopSubmissionController.createSubmission(response.workflowId, workflowExecution.callbackUri, response.status)
+        snoopSubmissionController.createSubmission(response.workflowId, workflowExecution.callbackUri, response.status)
 
       case Failure(error) =>
         requestContext.complete(error)
