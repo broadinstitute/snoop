@@ -69,8 +69,8 @@ case class ZamboniWorkflowExecutionService(requestContext: RequestContext, zambo
     zamboniApi.start(snoop2ZamboniWorkflow(workflowExecution, securityToken)) onComplete {
       case Success(response: ZamboniSubmissionResult) =>
         log.info("The workflowId is: {} with status {}", response.workflowId, response.status)
-        requestContext.complete(zamMessages2Snoop(workflowExecution, response))
         snoopSubmissionController.createSubmission(response.workflowId, workflowExecution.callbackUri, response.status)
+        requestContext.complete(zamMessages2Snoop(workflowExecution, response))
 
       case Failure(error) =>
         requestContext.complete(error)
