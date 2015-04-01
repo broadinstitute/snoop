@@ -49,14 +49,21 @@ object Boot extends App {
 
     val zamboniApi = StandardZamboniApi(conf.getString("zamboni.server"))
 
+    val snoopSubmissionController = SnoopSubmissionController(createDataSource(
+      conf.getString("database.jdbc.driver"),
+      conf.getString("database.jdbc.url"),
+      conf.getString("database.jdbc.user"),
+      conf.getString("database.jdbc.password"),
+      if (conf.hasPath("database.c3p0.maxStatements")) Option(conf.getInt("database.c3p0.maxStatements")) else None
+    ), conf.getString("database.slick.driver"))
+
     def executionServiceConstructor(): WorkflowExecutionService =
-      ZamboniWorkflowExecutionService(zamboniApi, conf.getString("workflow.sandbox"), SnoopSubmissionController(createDataSource(
-        conf.getString("database.jdbc.driver"),
-        conf.getString("database.jdbc.url"),
-        conf.getString("database.jdbc.user"),
-        conf.getString("database.jdbc.password"),
-        if (conf.hasPath("database.c3p0.maxStatements")) Option(conf.getInt("database.c3p0.maxStatements")) else None
-      ), conf.getString("database.slick.driver")))
+      ZamboniWorkflowExecutionService(zamboniApi,
+        conf.getString("workflow.sandbox.bucket"),
+        conf.getString("workflow.sandbox.keyPrefix"),
+        snoopSubmissionController ,
+        StandardAnalysisCallbackHandler(),
+        GcsOutputRepository(conf.getString("workflow.sandbox.email"), new File(conf.getString("workflow.sandbox.p12"))))
 
     val swaggerConfig = conf.getConfig("swagger")
     val swaggerService = new SwaggerService(

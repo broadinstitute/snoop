@@ -1,14 +1,13 @@
 package org.broadinstitute.dsde.snoop.ws
 
 
-import java.util.UUID
-
 import akka.actor.ActorSystem
 import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
+import org.broadinstitute.dsde.snoop.model.Submission
 import org.broadinstitute.dsde.snoop.ws.WorkflowParameter.WorkflowParameter
 import spray.httpx.SprayJsonSupport
 import spray.client.pipelining._
-import org.broadinstitute.dsde.snoop.WorkflowExecutionService
+import org.broadinstitute.dsde.snoop.{OutputRepository, SnoopException, WorkflowExecutionService}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -57,31 +56,32 @@ case class StandardZamboniApi(zamboniServer: String)(implicit val system: ActorS
   }
 }
 
-case class ZamboniWorkflowExecutionService(zamboniApi: ZamboniApi, gcsSandboxBucket: String, snoopSubmissionController: SnoopSubmissionController) extends WorkflowExecutionService {
+case class ZamboniWorkflowExecutionService(zamboniApi: ZamboniApi,
+                                           gcsSandboxBucket: String,
+                                           gcsSandboxKeyPrefix: String,
+                                           snoopSubmissionController: SnoopSubmissionController,
+                                           callbackHandler: AnalysisCallbackHandler,
+                                           outputRepository: OutputRepository) extends WorkflowExecutionService {
   import WorkflowExecutionJsonSupport._
 
-  def start(workflowExecution: WorkflowExecution, securityToken: String) : WorkflowExecution = {
+  def start(workflowExecution: WorkflowExecution, securityToken: String, submissionSandbox: String) : String = {
     log.info("Submitting workflow: " + workflowExecution.toJson)
 
-    val response = zamboniApi.start(snoop2ZamboniWorkflow(workflowExecution, securityToken))
-    zamMessages2Snoop(workflowExecution, response)
+    val response = zamboniApi.start(snoop2ZamboniWorkflow(workflowExecution, securityToken, submissionSandbox))
+    response.status
   }
   
-  def status(id: String, securityToken: String): WorkflowExecution = {
+  def status(id: String, securityToken: String): String = {
     log.info("Getting status for workflow: " + id)
     val response = zamboniApi.status(id)
     log.info("The workflowId is: {} with status {}", response.workflowId, response.status)
-    zamMessages2Snoop(WorkflowExecution(None, Map.empty, "workflow_id", "callback", None), response)
+    response.status
   }
 
-  def zamMessages2Snoop(workflowExecution: WorkflowExecution, zamResponse: ZamboniSubmissionResult): WorkflowExecution = {
-    workflowExecution.copy(id = Option(zamResponse.workflowId), status = Option(zamResponse.status))
-  }
-
-  def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution, securityToken: String) : ZamboniSubmission = {
+  def snoop2ZamboniWorkflow(exeMessage: WorkflowExecution, securityToken: String, submissionSandbox: String) : ZamboniSubmission = {
     val workflowParameters: Map[String, WorkflowParameter] =
       exeMessage.workflowParameters ++
-        Map(("gcsSandboxBucket" -> WorkflowParameter(gcsSandboxBucket + UUID.randomUUID().toString)),
+        Map(("gcsSandboxBucket" -> WorkflowParameter(submissionSandbox)),
             ("authToken" -> WorkflowParameter(securityToken)))
     import WorkflowExecutionJsonSupport._
     val workflowJson = workflowParameters.toJson
@@ -92,8 +92,7 @@ case class ZamboniWorkflowExecutionService(zamboniApi: ZamboniApi, gcsSandboxBuc
     ))
 
     val zamboniRequestString = zamboniRequest.toJson.toString
-    val zamboniMessage = ZamboniSubmission(zamboniRequestString)
-    zamboniMessage
+    ZamboniSubmission(zamboniRequestString)
   }
 
 }

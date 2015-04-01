@@ -22,6 +22,7 @@ libraryDependencies ++= {
     "mysql" % "mysql-connector-java" % "5.1.12",
     "org.hsqldb" % "hsqldb" % "2.3.2",
     "com.gettyimages"     %%  "spray-swagger" % "0.5.0",
+    "com.google.apis" % "google-api-services-storage" % "v1-rev30-1.20.0",
     "io.spray"            %%  "spray-testkit" % sprayV  % "test",
     "com.typesafe.akka"   %%  "akka-testkit"  % akkaV   % "test",
     "org.scalatest"       %%  "scalatest"     % "2.2.4" % "test",

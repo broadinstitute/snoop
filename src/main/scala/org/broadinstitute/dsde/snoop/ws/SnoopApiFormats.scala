@@ -14,14 +14,14 @@ object WorkflowParameter {
 
 @ApiModel(value = "Start Workflow / Workflow Status Response")
 case class WorkflowExecution(
-    @(ApiModelProperty@field)(required = false, value = "The id of the workflow execution. Required for all but POST requests.")
+    @(ApiModelProperty@field)(required = false, value = "The uuid of the workflow execution. Required for all but POST requests.")
     id: Option[String], 
     @(ApiModelProperty@field)(required = true, value = "The workflow parameters. Values may be Strings or Lists of Strings.")
-    workflowParameters: Map[String, WorkflowParameter],
+    workflowParameters: Map[String, WorkflowParameter] = Map.empty,
     @(ApiModelProperty@field)(required = true, value = "The workflow id to run.")
-    workflowId: String, 
+    workflowId: String = "",
     @(ApiModelProperty@field)(required = true, value = "The callback uri. This URI will be POSTed to when the workflow execution completes.")
-    callbackUri: String,
+    callbackUri: String = "",
     @(ApiModelProperty@field)(required = false, value = "The workflow status.")
     status: Option[String])
 

@@ -1,10 +1,10 @@
 package org.broadinstitute.dsde.snoop
 
 import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
+import org.broadinstitute.dsde.snoop.model.Submission
+import org.broadinstitute.dsde.snoop.ws.AnalysisCallbackHandler.AnalysesOutputResponse
 import org.broadinstitute.dsde.snoop.ws.WorkflowParameter.WorkflowParameter
 import org.broadinstitute.dsde.snoop.ws._
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
 import spray.httpx.SprayJsonSupport
 import spray.http._
 import StatusCodes._
@@ -18,7 +18,13 @@ import scala.concurrent.duration._
 class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with WorkflowExecutionApiService with ScalatestRouteTest with Matchers with TestDatabase {
   def actorRefFactory = system
 
-  def executionServiceConstructor(): WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test", new SnoopSubmissionController(() => TestDatabase.db, DatabaseConfig.slickDriver))
+  def executionServiceConstructor(): WorkflowExecutionService = ZamboniWorkflowExecutionService(
+    MockZamboniApi,
+    "test",
+    "key",
+    new SnoopSubmissionController(() => TestDatabase.db, DatabaseConfig.slickDriver),
+    MockAnalysisCallbackHandler,
+    MockOutputRepository)
 
   implicit val routeTestTimeout = RouteTestTimeout(5 second)
 
@@ -28,17 +34,21 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
     }
   }
 
+  var workflowExecId: String = _
   it should "return 201 for post to workflowExecution" in {
     Post("/workflowExecutions", HttpEntity(ContentTypes.`application/json`, s"""{
-          "workflowParameters": {"para1": "v1", "p2": "v2"},
+          "workflowParameters": {"para1": "v1", "p2": "v2", "p3": [ "a", "b", "c"] },
           "workflowId":  "workflow_id",
           "callbackUri": "callback"}""")) ~>
       addHeader(HttpHeaders.`Cookie`(HttpCookie("iPlanetDirectoryPro", "test_token"))) ~>
       sealRoute(startWorkflowRoute) ~>
       check {
-      status === Created
-      responseAs[WorkflowExecution] === WorkflowExecution(Some("f00ba4"), Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2"), "p3" -> WorkflowParameter(Seq("a", "b", "c"))), "workflow_id", "callback", Some("SUBMITTED"))
-    }
+        assertResult(Created) { status }
+        assertResult(WorkflowExecution(None, Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2"), "p3" -> WorkflowParameter(Seq("a", "b", "c"))), "workflow_id", "callback", Some("SUBMITTED"))) {
+          responseAs[WorkflowExecution].copy(id=None)
+        }
+        workflowExecId = responseAs[WorkflowExecution].id.get
+      }
   }
 
   it should "return 400 for post to workflowExecution without auth cookie" in {
@@ -48,18 +58,21 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
           "callbackUri": "callback"}""")) ~>
       sealRoute(startWorkflowRoute) ~>
       check {
-        status === BadRequest
+        assertResult(BadRequest) { status }
       }
   }
 
   it should "return 200 for get to workflowExecution" in {
-    Get("/workflowExecutions/f00ba4") ~>
+    Get("/workflowExecutions/" + workflowExecId) ~>
       addHeader(HttpHeaders.`Cookie`(HttpCookie("iPlanetDirectoryPro", "test_token"))) ~>
       sealRoute(workflowStatusRoute) ~>
       check {
-      status === OK
-      responseAs[WorkflowExecution] === WorkflowExecution(Some("f00ba4"), Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2")), "workflow_id", "callback", Some("RUNNING"))
-    }
+        assertResult(OK) { status }
+        assertResult(WorkflowExecution(Some(workflowExecId), Map(), "", "", Some("SUCCEEDED"))) {
+          responseAs[WorkflowExecution]
+        }
+      }
+    assertResult(Map("vcf" -> "key/foo.vcf", "bam" -> "key/foo.bam")) { MockAnalysisCallbackHandler.output }
   }
 
   "WorkflowParameter parser" should "parse a single value" in {
@@ -118,7 +131,6 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
 }
 
 object MockZamboniApi extends ZamboniApi {
-  import scala.concurrent.ExecutionContext.Implicits.global
   def start(zamboniSubmission: ZamboniSubmission): ZamboniSubmissionResult = {
     if (!zamboniSubmission.requestString.contains("test_token")) {
       throw new Exception("authToken not correctly populated in zamboni request")
@@ -130,6 +142,20 @@ object MockZamboniApi extends ZamboniApi {
   }
   
   def status(zamboniId: String): ZamboniSubmissionResult = {
-    ZamboniSubmissionResult("f00ba4", "RUNNING")
+    ZamboniSubmissionResult("f00ba4", "SUCCEEDED")
+  }
+}
+
+object MockAnalysisCallbackHandler extends AnalysisCallbackHandler {
+  var output: Map[String, String] = _
+  def putOutputs(submission: Submission, outputs: Map[String, String]): AnalysesOutputResponse = {
+    this.output = outputs
+    AnalysesOutputResponse("id", List.empty, Map.empty, Map.empty)
+  }
+}
+
+object MockOutputRepository extends OutputRepository {
+  override def listOutputs(bucket: String, keyPrefix: String): Seq[String] = {
+    Vector(keyPrefix + "/foo.bam", keyPrefix + "/foo.vcf")
   }
 }
