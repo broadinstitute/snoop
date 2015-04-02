@@ -2,6 +2,9 @@ package org.broadinstitute.dsde.snoop
 
 import akka.actor.{ActorRefFactory, Props, Actor}
 import com.typesafe.config.Config
+import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
+import org.broadinstitute.dsde.snoop.ws.PerRequest.RequestComplete
+import spray.http.StatusCodes
 import spray.httpx.SprayJsonSupport
 import spray.routing._
 import spray.json._
@@ -18,8 +21,8 @@ import java.io.File
 import com.typesafe.config.{Config, ConfigFactory}
 
 object SnoopApiServiceActor {
-  def props(executionServiceHandler: RequestContext => WorkflowExecutionService, swaggerService: SwaggerService): Props = {
-    Props(new SnoopApiServiceActor(executionServiceHandler, swaggerService))
+  def props(executionServiceConstructor: () => WorkflowExecutionService, swaggerService: SwaggerService): Props = {
+    Props(new SnoopApiServiceActor(executionServiceConstructor, swaggerService))
   }
 }
 
@@ -30,18 +33,19 @@ class SwaggerService(override val apiVersion: String,
                      override val apiTypes: Seq[Type],
                      override val apiInfo: Option[ApiInfo])(implicit val actorRefFactory: ActorRefFactory) extends SwaggerHttpService
 
-class SnoopApiServiceActor(override val executionServiceHandler: RequestContext => WorkflowExecutionService, swaggerService: SwaggerService) extends Actor with RootSnoopApiService with WorkflowExecutionApiService {
+class SnoopApiServiceActor(executionServiceCtor: () => WorkflowExecutionService, swaggerService: SwaggerService) extends Actor with RootSnoopApiService with WorkflowExecutionApiService {
   implicit def executionContext = actorRefFactory.dispatcher
   def actorRefFactory = context
   def possibleRoutes = baseRoute ~ workflowRoutes ~ swaggerService.routes 
 
   def receive = runRoute(possibleRoutes)
   def apiTypes = Seq(typeOf[RootSnoopApiService], typeOf[WorkflowExecutionApiService])
+  def executionServiceConstructor(): WorkflowExecutionService = executionServiceCtor()
 }
 
 @Api(value = "", description = "Snoop Base API", position = 1)
 trait RootSnoopApiService extends HttpService {
-  def executionServiceHandler: RequestContext => WorkflowExecutionService
+  def executionServiceConstructor(): WorkflowExecutionService
 
   @ApiOperation(value = "Check if Snoop is alive",
     nickname = "poke",
@@ -75,11 +79,11 @@ trait RootSnoopApiService extends HttpService {
 
 // this trait defines our service behavior independently from the service actor
 @Api(value = "workflowExecutions", description = "Snoop Workflow Execution API", position = 1)
-trait WorkflowExecutionApiService extends HttpService {
+trait WorkflowExecutionApiService extends HttpService with PerRequestCreator {
   import WorkflowExecutionJsonSupport._
   import SprayJsonSupport._
 
-  def executionServiceHandler: RequestContext => WorkflowExecutionService
+  def executionServiceConstructor(): WorkflowExecutionService
 
   def workflowRoutes = startWorkflowRoute ~ workflowStatusRoute
 
@@ -99,8 +103,7 @@ trait WorkflowExecutionApiService extends HttpService {
         post {
           entity(as[WorkflowExecution]) { workflowExecution =>
             requestContext =>
-              val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
-              executionService ! WorkflowExecutionService.WorkflowStart(workflowExecution, securityToken)
+              perRequest(requestContext, WorkflowExecutionService.props(executionServiceConstructor), WorkflowExecutionService.WorkflowStart(workflowExecution, securityToken))
           }
         }
       }
@@ -125,8 +128,7 @@ trait WorkflowExecutionApiService extends HttpService {
       path("workflowExecutions" / Segment) { id =>
         respondWithMediaType(`application/json`) {
           requestContext =>
-            val executionService = actorRefFactory.actorOf(WorkflowExecutionService.props(executionServiceHandler, requestContext))
-            executionService ! WorkflowExecutionService.WorkflowStatus(id, securityToken)
+            perRequest(requestContext, WorkflowExecutionService.props(executionServiceConstructor), WorkflowExecutionService.WorkflowStatus(id, securityToken))
         }
       }
     }
@@ -136,14 +138,14 @@ object WorkflowExecutionService {
   case class WorkflowStart(workflowExecution: WorkflowExecution, securityToken: String)
   case class WorkflowStatus(id: String, securityToken: String)
 
-  def props(executionServiceHandler: RequestContext => WorkflowExecutionService, requestContext: RequestContext): Props = {
-    Props(executionServiceHandler(requestContext))
+  def props(executionServiceConstructor: () => WorkflowExecutionService): Props = {
+    Props(executionServiceConstructor())
   }
 
 }
 
 trait WorkflowExecutionService extends Actor {
-  val requestContext: RequestContext
+  val snoopSubmissionController: SnoopSubmissionController
 
   implicit val system = context.system
   val log = Logging(system, getClass)
@@ -151,21 +153,23 @@ trait WorkflowExecutionService extends Actor {
 
   override def receive = {
     case WorkflowExecutionService.WorkflowStart(workflowExecution, securityToken) =>
-      start(workflowExecution, securityToken)
-      context.stop(self)
+      val response = start(workflowExecution, securityToken)
+      snoopSubmissionController.createSubmission(workflowExecution.workflowId, workflowExecution.callbackUri, response.status.getOrElse(throw new SnoopException("status missing in response")))
+      context.parent ! RequestComplete(StatusCodes.Created, response)
+
     case WorkflowExecutionService.WorkflowStatus(id, securityToken) =>
-      status(id, securityToken)
-      context.stop(self)
+      val response = status(id, securityToken)
+      context.parent ! response
   }
 
   /**
    * Starts a workflow execution, emits response directly to requestContext which should include
    * the id of the workflow execution
    */
-  def start(workflowExecution: WorkflowExecution, securityToken: String)
+  def start(workflowExecution: WorkflowExecution, securityToken: String): WorkflowExecution
   
   /**
    * Gets status of a workflow execution, emits response directly to requestContext
    */
-  def status(id: String, securityToken: String)
+  def status(id: String, securityToken: String): WorkflowExecution
 }

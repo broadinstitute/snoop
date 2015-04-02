@@ -13,6 +13,7 @@ libraryDependencies ++= {
     "io.spray"            %%  "spray-can"     % sprayV,
     "io.spray"            %%  "spray-routing" % sprayV,
     "io.spray"            %%  "spray-client"  % sprayV,
+    "io.spray"            %%  "spray-http"    % sprayV,
     "io.spray"            %%  "spray-json"    % "1.3.1",
     "com.typesafe.akka"   %%  "akka-actor"    % akkaV,
     "com.typesafe.slick" %% "slick" % "2.1.0",
@@ -29,3 +30,5 @@ libraryDependencies ++= {
 }
 
 Revolver.settings
+
+Revolver.enableDebugging(port = 5050, suspend = false)
