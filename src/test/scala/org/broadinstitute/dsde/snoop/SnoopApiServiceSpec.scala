@@ -13,13 +13,14 @@ import SprayJsonSupport._
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import spray.testkit.ScalatestRouteTest
-import scala.concurrent.Future
-import spray.routing.RequestContext
+import scala.concurrent.duration._
 
 class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with WorkflowExecutionApiService with ScalatestRouteTest with Matchers with TestDatabase {
   def actorRefFactory = system
 
   def executionServiceConstructor(): WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test", new SnoopSubmissionController(() => TestDatabase.db, DatabaseConfig.slickDriver))
+
+  implicit val routeTestTimeout = RouteTestTimeout(5 second)
 
   "Snoop" should "return a greeting for GET requests to the root path" in {
     Get() ~> baseRoute ~> check {
