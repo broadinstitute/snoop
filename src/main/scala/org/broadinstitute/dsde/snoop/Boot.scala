@@ -7,11 +7,10 @@ import akka.io.IO
 import com.mchange.v2.c3p0.ComboPooledDataSource
 import com.wordnik.swagger.model.ApiInfo
 import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
-import org.broadinstitute.dsde.snoop.ws.{StandardZamboniApi, ZamboniWorkflowExecutionService}
+import org.broadinstitute.dsde.snoop.ws._
 import spray.can.Http
 import akka.pattern.ask
 import akka.util.Timeout
-import spray.routing.RequestContext
 import scala.concurrent.duration._
 import com.typesafe.config.{Config, ConfigFactory}
 import java.io.File
@@ -48,9 +47,10 @@ object Boot extends App {
     // we need an ActorSystem to host our application in
     implicit val system = ActorSystem("snoop")
 
+    val zamboniApi = StandardZamboniApi(conf.getString("zamboni.server"))
 
-    val executionServiceHandler: RequestContext => WorkflowExecutionService =
-      ZamboniWorkflowExecutionService(StandardZamboniApi(conf.getString("zamboni.server")), conf.getString("workflow.sandbox"), SnoopSubmissionController(createDataSource(
+    def executionServiceConstructor(): WorkflowExecutionService =
+      ZamboniWorkflowExecutionService(zamboniApi, conf.getString("workflow.sandbox"), SnoopSubmissionController(createDataSource(
         conf.getString("database.jdbc.driver"),
         conf.getString("database.jdbc.url"),
         conf.getString("database.jdbc.user"),
@@ -74,12 +74,12 @@ object Boot extends App {
         swaggerConfig.getString("licenseUrl"))
       ))
 
-    val service = system.actorOf(SnoopApiServiceActor.props(executionServiceHandler, swaggerService), "snoop-service")
+    val service = system.actorOf(SnoopApiServiceActor.props(executionServiceConstructor, swaggerService), "snoop-service")
 
     implicit val timeout = Timeout(5.seconds)
     // start a new HTTP server on port 8080 with our service actor as the handler
     IO(Http) ? Http.Bind(service, interface = "0.0.0.0", port = 8080)
   }
 
-  startup
+  startup()
 }

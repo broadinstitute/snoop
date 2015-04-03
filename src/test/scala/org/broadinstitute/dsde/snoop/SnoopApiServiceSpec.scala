@@ -13,13 +13,14 @@ import SprayJsonSupport._
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import spray.testkit.ScalatestRouteTest
-import scala.concurrent.Future
-import spray.routing.RequestContext
+import scala.concurrent.duration._
 
 class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with WorkflowExecutionApiService with ScalatestRouteTest with Matchers with TestDatabase {
   def actorRefFactory = system
 
-  val executionServiceHandler: RequestContext => WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test", new SnoopSubmissionController(() => TestDatabase.db, DatabaseConfig.slickDriver))
+  def executionServiceConstructor(): WorkflowExecutionService = ZamboniWorkflowExecutionService(MockZamboniApi, "test", new SnoopSubmissionController(() => TestDatabase.db, DatabaseConfig.slickDriver))
+
+  implicit val routeTestTimeout = RouteTestTimeout(5 second)
 
   "Snoop" should "return a greeting for GET requests to the root path" in {
     Get() ~> baseRoute ~> check {
@@ -27,7 +28,7 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
     }
   }
 
-  it should "return 200 for post to workflowExecution" in {
+  it should "return 201 for post to workflowExecution" in {
     Post("/workflowExecutions", HttpEntity(ContentTypes.`application/json`, s"""{
           "workflowParameters": {"para1": "v1", "p2": "v2"},
           "workflowId":  "workflow_id",
@@ -35,7 +36,7 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
       addHeader(HttpHeaders.`Cookie`(HttpCookie("iPlanetDirectoryPro", "test_token"))) ~>
       sealRoute(startWorkflowRoute) ~>
       check {
-      status === OK
+      status === Created
       responseAs[WorkflowExecution] === WorkflowExecution(Some("f00ba4"), Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2"), "p3" -> WorkflowParameter(Seq("a", "b", "c"))), "workflow_id", "callback", Some("SUBMITTED"))
     }
   }
@@ -118,21 +119,17 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
 
 object MockZamboniApi extends ZamboniApi {
   import scala.concurrent.ExecutionContext.Implicits.global
-  def start(zamboniSubmission: ZamboniSubmission): Future[ZamboniSubmissionResult] = {
-    Future {
-      if (!zamboniSubmission.requestString.contains("test_token")) {
-        throw new Exception("authToken not correctly populated in zamboni request")
-      }
-      if (!zamboniSubmission.requestString.contains("gcsSandboxBucket")) {
-        throw new Exception("gcsSandboxBucket not populated")
-      }
-      ZamboniSubmissionResult("f00ba4", "SUBMITTED")
+  def start(zamboniSubmission: ZamboniSubmission): ZamboniSubmissionResult = {
+    if (!zamboniSubmission.requestString.contains("test_token")) {
+      throw new Exception("authToken not correctly populated in zamboni request")
     }
+    if (!zamboniSubmission.requestString.contains("gcsSandboxBucket")) {
+      throw new Exception("gcsSandboxBucket not populated")
+    }
+    ZamboniSubmissionResult("f00ba4", "SUBMITTED")
   }
   
-  def status(zamboniId: String): Future[ZamboniSubmissionResult] = {
-    Future {
-      ZamboniSubmissionResult("f00ba4", "RUNNING")
-    }
+  def status(zamboniId: String): ZamboniSubmissionResult = {
+    ZamboniSubmissionResult("f00ba4", "RUNNING")
   }
 }
