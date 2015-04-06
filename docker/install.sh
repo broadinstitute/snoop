@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 SNOOP_DIR=$1
 cd $SNOOP_DIR
 sbt assembly
