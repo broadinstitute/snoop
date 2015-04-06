@@ -1,6 +1,7 @@
 package org.broadinstitute.dsde.snoop
 
 import java.sql.Timestamp
+import java.util.UUID
 
 import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
 import org.broadinstitute.dsde.snoop.model.Submission
@@ -20,10 +21,10 @@ class SnoopControllerSpec extends SnoopDatabaseSpec {
 
       TestDatabase.db withTransaction {
         implicit session => {
-          val sInsert = da.insertSubmission(Submission("f00ba4", Option(new Timestamp(System.currentTimeMillis())), null, "gs://test_location", "Submitted"))
-          val sSelect = da.getSubmissionBySubmissionId("f00ba4")
+          val id = UUID.randomUUID.toString
+          val sInsert = snoopSubmissionController.createSubmission(id, "f00ba4", "gs://test_location", "Submitted")
+          val sSelect = da.getSubmissionById(id)
 
-          sInsert.id shouldNot be(empty)
           sSelect.submissionId should be(sInsert.submissionId)
         }
       }

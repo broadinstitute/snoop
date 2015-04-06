@@ -14,8 +14,8 @@
         <comment>Create table</comment>
 
         <createTable tableName="SUBMISSION">
-            <column name="ID" autoIncrement="true" type="int">
-                <constraints primaryKey="true" nullable="false"/>
+            <column name="ID" type="varchar(36)">
+               <constraints nullable="false"/>
             </column>
             <column name="SUBMISSION_ID" type="varchar(255)">
                 <constraints nullable="false"/>
@@ -30,6 +30,7 @@
             </column>
         </createTable>
 
+        <addPrimaryKey tableName="SUBMISSION" constraintName="PK_SUBMISSION" columnNames="ID"/>
         <createIndex indexName="SUBMISSION_BY_SUBMISSIONID_IDX" tableName="SUBMISSION" unique="false">
             <column name="SUBMISSION_ID"/>
         </createIndex>

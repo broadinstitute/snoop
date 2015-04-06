@@ -7,10 +7,10 @@ import java.sql.Timestamp
  */
 case class Submission
 (
+  id: String,
   submissionId: String,
   submissionDate: Option[Timestamp] = None,
   modifiedDate: Option[Timestamp] = None,
   callbackUri: String,
-  status: String,
-  id: Option[Int] = None
+  status: String
 )
