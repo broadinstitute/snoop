@@ -5,7 +5,7 @@ import org.broadinstitute.dsde.snoop.model.Submission
 import scala.collection.JavaConversions._
 import java.io.File
 import java.net.URI
-import java.util.{Collections, UUID}
+import java.util.{NoSuchElementException, Collections, UUID}
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
@@ -183,15 +183,19 @@ trait WorkflowExecutionService extends Actor {
       context.parent ! RequestComplete(StatusCodes.Created, workflowExecution.copy(id=Option(id), status = Option("SUBMITTED")))
 
     case WorkflowExecutionService.WorkflowStatus(id, securityToken) =>
-      val statusVal = status(id, securityToken)
-      if (statusVal == succeeded) {
+      try {
         val submission = snoopSubmissionController.getSubmission(id)
-        if (submission.status != succeeded) {
-          callbackHandler.putOutputs(submission, locateOutputs(submission))
-          snoopSubmissionController.updateSubmissionStatus(id, statusVal)
+        val statusVal = status(submission.submissionId, securityToken)
+        if (statusVal == succeeded) {
+          if (submission.status != succeeded) {
+            callbackHandler.putOutputs(submission, locateOutputs(submission))
+            snoopSubmissionController.updateSubmissionStatus(id, statusVal)
+          }
         }
+        context.parent ! WorkflowExecution(id = Option(id), status = Option(statusVal))
+      } catch {
+        case _: NoSuchElementException => context.parent ! RequestComplete(StatusCodes.NotFound, s"workflow execution with id $id not found")
       }
-      context.parent ! WorkflowExecution(id=Option(id), status=Option(statusVal))
   }
 
   /**
