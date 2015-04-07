@@ -188,7 +188,7 @@ trait WorkflowExecutionService extends Actor {
         val statusVal = status(submission.submissionId, securityToken)
         if (statusVal == succeeded) {
           if (submission.status != succeeded) {
-            callbackHandler.putOutputs(submission, locateOutputs(submission))
+            callbackHandler.putOutputs(submission, locateOutputs(submission), securityToken)
             snoopSubmissionController.updateSubmissionStatus(id, statusVal)
           }
         }

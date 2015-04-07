@@ -22,7 +22,7 @@ class SnoopControllerSpec extends SnoopDatabaseSpec {
       TestDatabase.db withTransaction {
         implicit session => {
           val id = UUID.randomUUID.toString
-          val sInsert = snoopSubmissionController.createSubmission(id, "f00ba4", "gs://test_location", "Submitted")
+          val sInsert = snoopSubmissionController.createSubmission(id, "f00ba4", null, "Submitted")
           val sSelect = da.getSubmissionById(id)
 
           sSelect.submissionId should be(sInsert.submissionId)

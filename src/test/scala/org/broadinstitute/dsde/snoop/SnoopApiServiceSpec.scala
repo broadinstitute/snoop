@@ -2,7 +2,7 @@ package org.broadinstitute.dsde.snoop
 
 import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
 import org.broadinstitute.dsde.snoop.model.Submission
-import org.broadinstitute.dsde.snoop.ws.AnalysisCallbackHandler.AnalysesOutputResponse
+import org.broadinstitute.dsde.snoop.ws.AnalysisCallbackHandler.{AnalysesObject, AnalysesOutputResponse}
 import org.broadinstitute.dsde.snoop.ws.WorkflowParameter.WorkflowParameter
 import org.broadinstitute.dsde.snoop.ws._
 import spray.httpx.SprayJsonSupport
@@ -157,7 +157,7 @@ object MockZamboniApi extends ZamboniApi {
 
 object MockAnalysisCallbackHandler extends AnalysisCallbackHandler {
   var output: Map[String, String] = _
-  def putOutputs(submission: Submission, outputs: Map[String, String]): AnalysesOutputResponse = {
+  def putOutputs(submission: Submission, outputs: Map[String, String], securityToken: String): AnalysesOutputResponse = {
     this.output = outputs
     AnalysesOutputResponse("id", List.empty, Map.empty, Map.empty)
   }

@@ -62,7 +62,7 @@ object Boot extends App {
         conf.getString("workflow.sandbox.bucket"),
         conf.getString("workflow.sandbox.keyPrefix"),
         snoopSubmissionController ,
-        StandardAnalysisCallbackHandler(),
+        StandardAnalysisCallbackHandler(conf.getString("vault.server"), conf.getString("vault.queryPath")),
         GcsOutputRepository(conf.getString("workflow.sandbox.email"), new File(conf.getString("workflow.sandbox.p12"))))
 
     val swaggerConfig = conf.getConfig("swagger")
