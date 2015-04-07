@@ -75,6 +75,15 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
     assertResult(Map("vcf" -> "key/foo.vcf", "bam" -> "key/foo.bam")) { MockAnalysisCallbackHandler.output }
   }
 
+  it should "return 404 for get to workflowExecution" in {
+    Get("/workflowExecutions/idonotexist") ~>
+      addHeader(HttpHeaders.`Cookie`(HttpCookie("iPlanetDirectoryPro", "test_token"))) ~>
+      sealRoute(workflowStatusRoute) ~>
+      check {
+        assertResult(NotFound) { status }
+      }
+  }
+
   "WorkflowParameter parser" should "parse a single value" in {
     import WorkflowExecutionJsonSupport._
     import spray.json._
