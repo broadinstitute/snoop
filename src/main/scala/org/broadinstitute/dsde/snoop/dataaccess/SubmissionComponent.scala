@@ -16,7 +16,7 @@ trait SubmissionComponent {
     def status = column[String]("STATUS")
     def id = column[String]("ID", O.PrimaryKey)
 
-    override def * = (id, submissionId, submissionDate.?, modifiedDate.?, callbackUri, status) <> (Submission.tupled, Submission.unapply)
+    override def * = (id, submissionId, submissionDate.?, modifiedDate.?, callbackUri.?, status) <> (Submission.tupled, Submission.unapply)
   }
 
   val submissions = TableQuery[Submissions]
@@ -24,7 +24,7 @@ trait SubmissionComponent {
 
   def insertSubmission(id: String, submissionId: String, callbackUri: String, status: String)(implicit session: Session): Submission = {
     val submission = Submission(id, submissionId, Option(new Timestamp(System.currentTimeMillis())),
-                                null, callbackUri, status)
+                                null, Option(callbackUri), status)
     submissionsCompiled += submission
     submission
   }

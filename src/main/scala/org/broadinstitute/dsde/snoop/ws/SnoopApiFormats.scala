@@ -20,7 +20,7 @@ case class WorkflowExecution(
     workflowParameters: Map[String, WorkflowParameter] = Map.empty,
     @(ApiModelProperty@field)(required = true, value = "The workflow id to run.")
     workflowId: String = "",
-    @(ApiModelProperty@field)(required = true, value = "The callback uri. This URI will be POSTed to when the workflow execution completes.")
+    @(ApiModelProperty@field)(required = false, value = "The callback uri. This URI will be POSTed to when the workflow execution completes.")
     callbackUri: String = "",
     @(ApiModelProperty@field)(required = false, value = "The workflow status.")
     status: Option[String])

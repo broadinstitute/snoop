@@ -35,4 +35,7 @@
             <column name="SUBMISSION_ID"/>
         </createIndex>
     </changeSet>
+    <changeSet id="dropNotNullConstraint" author="plin">
+        <dropNotNullConstraint columnName="CALLBACK_URI" columnDataType="varchar(255)" tableName="SUBMISSION"/>
+    </changeSet>
 </databaseChangeLog>

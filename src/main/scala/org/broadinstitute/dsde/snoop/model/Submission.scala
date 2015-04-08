@@ -11,6 +11,6 @@ case class Submission
   submissionId: String,
   submissionDate: Option[Timestamp] = None,
   modifiedDate: Option[Timestamp] = None,
-  callbackUri: String,
+  callbackUri: Option[String],
   status: String
 )
