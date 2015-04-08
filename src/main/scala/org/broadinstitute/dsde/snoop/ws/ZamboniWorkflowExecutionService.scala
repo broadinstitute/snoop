@@ -68,7 +68,7 @@ case class ZamboniWorkflowExecutionService(zamboniApi: ZamboniApi,
     log.info("Submitting workflow: " + workflowExecution.toJson)
 
     val response = zamboniApi.start(snoop2ZamboniWorkflow(workflowExecution, securityToken, submissionSandbox))
-    response.status
+    response.workflowId
   }
   
   def status(id: String, securityToken: String): String = {
