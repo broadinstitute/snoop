@@ -21,7 +21,7 @@ case class WorkflowExecution(
     @(ApiModelProperty@field)(required = true, value = "The workflow id to run.")
     workflowId: String = "",
     @(ApiModelProperty@field)(required = false, value = "The callback uri. This URI will be POSTed to when the workflow execution completes.")
-    callbackUri: String = "",
+    callbackUri: Option[String] = None,
     @(ApiModelProperty@field)(required = false, value = "The workflow status.")
     status: Option[String])
 

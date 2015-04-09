@@ -22,9 +22,9 @@ trait SubmissionComponent {
   val submissions = TableQuery[Submissions]
   val submissionsCompiled = Compiled(submissions)
 
-  def insertSubmission(id: String, submissionId: String, callbackUri: String, status: String)(implicit session: Session): Submission = {
+  def insertSubmission(id: String, submissionId: String, callbackUri: Option[String], status: String)(implicit session: Session): Submission = {
     val submission = Submission(id, submissionId, Option(new Timestamp(System.currentTimeMillis())),
-                                null, Option(callbackUri), status)
+                                null, callbackUri, status)
     submissionsCompiled += submission
     submission
   }

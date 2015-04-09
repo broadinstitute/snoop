@@ -18,7 +18,7 @@ object SnoopSubmissionController {
 class SnoopSubmissionController(database: () => Database, slickDriver: String) {
   val dataAccess = new DataAccess(slickDriver)
 
-  def createSubmission(id: String, submissionId: String, callbackUri: String, status: String) : Submission = {
+  def createSubmission(id: String, submissionId: String, callbackUri: Option[String], status: String) : Submission = {
     database() withTransaction {
       implicit session =>
         val submission = dataAccess.insertSubmission(id, submissionId, callbackUri, status)

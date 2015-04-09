@@ -44,7 +44,7 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
       sealRoute(startWorkflowRoute) ~>
       check {
         assertResult(Created) { status }
-        assertResult(WorkflowExecution(None, Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2"), "p3" -> WorkflowParameter(Seq("a", "b", "c"))), "workflow_id", "callback", Some("SUBMITTED"))) {
+        assertResult(WorkflowExecution(None, Map("para1" -> WorkflowParameter("v1"), "p2" -> WorkflowParameter("v2"), "p3" -> WorkflowParameter(Seq("a", "b", "c"))), "workflow_id", Option("callback"), Some("SUBMITTED"))) {
           responseAs[WorkflowExecution].copy(id=None)
         }
         workflowExecId = responseAs[WorkflowExecution].id.get
@@ -68,7 +68,7 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
       sealRoute(workflowStatusRoute) ~>
       check {
         assertResult(OK) { status }
-        assertResult(WorkflowExecution(Some(workflowExecId), Map(), "", "", Some("SUCCEEDED"))) {
+        assertResult(WorkflowExecution(Some(workflowExecId), Map(), "", None, Some("SUCCEEDED"))) {
           responseAs[WorkflowExecution]
         }
       }
