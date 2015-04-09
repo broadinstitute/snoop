@@ -58,7 +58,7 @@ case class StandardAnalysisCallbackHandler(server: String, queryPath: String)(im
 
   def getVaultCallbackUri(submission: Submission, securityToken: String): String = {
     val vaultId = getAnalysesObject(submission.id, securityToken).guid
-    s"$server/analyses/$vaultId/outputs"
+    s"$server/api/analyses/$vaultId/outputs"
   }
 
   private def getAnalysesObject(id: String, securityToken: String): AnalysesObject = {
