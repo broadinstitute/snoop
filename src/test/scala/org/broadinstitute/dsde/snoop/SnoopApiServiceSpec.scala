@@ -72,7 +72,7 @@ class SnoopApiServiceSpec extends FlatSpec with RootSnoopApiService with Workflo
           responseAs[WorkflowExecution]
         }
       }
-    assertResult(Map("vcf" -> "key/foo.vcf", "bam" -> "key/foo.bam")) { MockAnalysisCallbackHandler.output }
+    assertResult(Map("vcf" -> "key/foo.final.vcf.gz", "abam" -> "key/foo.final.bam")) { MockAnalysisCallbackHandler.output }
   }
 
   it should "return 404 for get to workflowExecution" in {
@@ -165,6 +165,6 @@ object MockAnalysisCallbackHandler extends AnalysisCallbackHandler {
 
 object MockOutputRepository extends OutputRepository {
   override def listOutputs(bucket: String, keyPrefix: String): Seq[String] = {
-    Vector(keyPrefix + "/foo.bam", keyPrefix + "/foo.vcf")
+    Vector(keyPrefix + "/foo.final.bam", keyPrefix + "/foo.final.vcf.gz")
   }
 }

@@ -169,8 +169,24 @@ trait WorkflowExecutionService extends Actor {
   val succeeded = "SUCCEEDED"
 
   val outputPatternsByType: Map[String, String] = Map(
-    ("vcf" -> raw".+\.vcf"),
-    ("bam" -> raw".+\.bam")
+    "vcf" -> raw".+\.final\.vcf\.gz",
+    "vcf_index" -> raw".+\.final\.vcf\.gz\.tbi",
+    "abam" -> raw".+\.final\.bam",
+    "abam_index" -> raw".+\.final\.bai",
+    "adapter_metrics" -> raw".+\.adapter_metrics",
+    "alignment_summary_metrics" -> raw".+\.alignment_summary_metrics",
+    "duplicate_metrics" -> raw".+\.duplicate_metrics",
+    "gc_bias_detail_metrics" -> raw".+\.gc_bias\.detail_metrics",
+    "gc_bias" -> raw".+\.gc_bias\.pdf",
+    "gc_bias_summary_metrics" -> raw".+\.gc_bias\.summary_metrics",
+    "quality_by_cycle_metrics" -> raw".+\.quality_by_cycle_metrics",
+    "quality_by_cycle" -> raw".+\.quality_by_cycle.pdf",
+    "quality_distribution_metrics" -> raw".+\.quality_distribution_metrics",
+    "quality_distribution" -> raw".+\.quality_distribution\.pdf",
+    "quality_yield_metrics" -> raw".+\.quality_yield_metrics",
+    "selfSM" -> raw".+\.selfSM",
+    "validation_metrics" -> raw".+\.validation_metrics",
+    "insert_size_metrics" -> raw".+\.insert_size_metrics"
   )
 
   def submissionSandbox(submissionId: String) = s"gs://$gcsSandboxBucket/$gcsSandboxKeyPrefix/$submissionId"
