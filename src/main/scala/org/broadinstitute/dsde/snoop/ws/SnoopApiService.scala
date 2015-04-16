@@ -29,8 +29,8 @@ import scala.annotation.tailrec
 import scala.reflect.runtime.universe._
 
 object SnoopApiServiceActor {
-  def props(executionServiceConstructor: () => WorkflowExecutionService, swaggerService: SwaggerService): Props = {
-    Props(new SnoopApiServiceActor(executionServiceConstructor, swaggerService))
+  def props(executionServiceConstructor: () => WorkflowExecutionService, swaggerService: SwaggerService, swaggerOrigin: String): Props = {
+    Props(new SnoopApiServiceActor(executionServiceConstructor, swaggerService, swaggerOrigin))
   }
 }
 
@@ -41,10 +41,10 @@ class SwaggerService(override val apiVersion: String,
                      override val apiTypes: Seq[Type],
                      override val apiInfo: Option[ApiInfo])(implicit val actorRefFactory: ActorRefFactory) extends SwaggerHttpService
 
-class SnoopApiServiceActor(executionServiceCtor: () => WorkflowExecutionService, swaggerService: SwaggerService) extends Actor with RootSnoopApiService with WorkflowExecutionApiService with CORSDirectives {
+class SnoopApiServiceActor(executionServiceCtor: () => WorkflowExecutionService, swaggerService: SwaggerService, swaggerOrigin: String) extends Actor with RootSnoopApiService with WorkflowExecutionApiService with CorsDirectives {
   implicit def executionContext = actorRefFactory.dispatcher
   def actorRefFactory = context
-  def possibleRoutes =  cors { baseRoute ~ workflowRoutes ~ swaggerService.routes }
+  def possibleRoutes =  cors(swaggerOrigin){ baseRoute ~ workflowRoutes ~ swaggerService.routes }
 
   def receive = runRoute(possibleRoutes)
   def apiTypes = Seq(typeOf[RootSnoopApiService], typeOf[WorkflowExecutionApiService])
