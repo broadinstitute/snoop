@@ -1,40 +1,36 @@
 package org.broadinstitute.dsde.snoop
 
-import org.broadinstitute.dsde.snoop.model.Submission
-
-import scala.collection.JavaConversions._
 import java.io.File
-import java.net.URI
-import java.util.{NoSuchElementException, Collections, UUID}
+import java.util.{Collections, NoSuchElementException, UUID}
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-import com.google.api.client.http.{HttpRequest, HttpBackOffUnsuccessfulResponseHandler, HttpResponse}
-import com.google.api.client.json.jackson2.JacksonFactory
-import com.google.api.client.util.ExponentialBackOff.Builder
-import com.google.api.services.storage.Storage
-import com.google.api.services.storage.model.{StorageObject, Objects}
-import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
-import org.broadinstitute.dsde.snoop.ws.PerRequest.RequestComplete
-import spray.http.StatusCodes
 import akka.actor.{Actor, ActorRefFactory, Props}
 import akka.event.Logging
 import com.gettyimages.spray.swagger.SwaggerHttpService
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+import com.google.api.client.http.{HttpBackOffUnsuccessfulResponseHandler, HttpRequest, HttpResponse}
+import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.client.util.ExponentialBackOff.Builder
+import com.google.api.services.storage.Storage
+import com.google.api.services.storage.model.StorageObject
 import com.wordnik.swagger.annotations._
 import com.wordnik.swagger.model.ApiInfo
+import org.broadinstitute.dsde.snoop.dataaccess.SnoopSubmissionController
+import org.broadinstitute.dsde.snoop.model.Submission
+import org.broadinstitute.dsde.snoop.ws.PerRequest.RequestComplete
 import org.broadinstitute.dsde.snoop.ws._
 import spray.http.MediaTypes._
+import spray.http.StatusCodes
 import spray.httpx.SprayJsonSupport
 import spray.routing.Directive.pimpApply
 import spray.routing._
 
 import scala.annotation.tailrec
 import scala.reflect.runtime.universe._
-import scala.util.matching._
 
 object SnoopApiServiceActor {
-  def props(executionServiceConstructor: () => WorkflowExecutionService, swaggerService: SwaggerService): Props = {
-    Props(new SnoopApiServiceActor(executionServiceConstructor, swaggerService))
+  def props(executionServiceConstructor: () => WorkflowExecutionService, swaggerService: SwaggerService, swaggerOrigin: String): Props = {
+    Props(new SnoopApiServiceActor(executionServiceConstructor, swaggerService, swaggerOrigin))
   }
 }
 
@@ -45,10 +41,10 @@ class SwaggerService(override val apiVersion: String,
                      override val apiTypes: Seq[Type],
                      override val apiInfo: Option[ApiInfo])(implicit val actorRefFactory: ActorRefFactory) extends SwaggerHttpService
 
-class SnoopApiServiceActor(executionServiceCtor: () => WorkflowExecutionService, swaggerService: SwaggerService) extends Actor with RootSnoopApiService with WorkflowExecutionApiService {
+class SnoopApiServiceActor(executionServiceCtor: () => WorkflowExecutionService, swaggerService: SwaggerService, swaggerOrigin: String) extends Actor with RootSnoopApiService with WorkflowExecutionApiService with CorsDirectives {
   implicit def executionContext = actorRefFactory.dispatcher
   def actorRefFactory = context
-  def possibleRoutes = baseRoute ~ workflowRoutes ~ swaggerService.routes 
+  def possibleRoutes =  cors(swaggerOrigin){ baseRoute ~ workflowRoutes ~ swaggerService.routes }
 
   def receive = runRoute(possibleRoutes)
   def apiTypes = Seq(typeOf[RootSnoopApiService], typeOf[WorkflowExecutionApiService])
@@ -92,8 +88,8 @@ trait RootSnoopApiService extends HttpService {
 // this trait defines our service behavior independently from the service actor
 @Api(value = "workflowExecutions", description = "Snoop Workflow Execution API", position = 1)
 trait WorkflowExecutionApiService extends HttpService with PerRequestCreator {
-  import WorkflowExecutionJsonSupport._
-  import SprayJsonSupport._
+  import org.broadinstitute.dsde.snoop.ws.WorkflowExecutionJsonSupport._
+  import spray.httpx.SprayJsonSupport._
 
   def executionServiceConstructor(): WorkflowExecutionService
 
@@ -108,7 +104,7 @@ trait WorkflowExecutionApiService extends HttpService with PerRequestCreator {
     new ApiResponse(code = 200, message = "Successful Request"),
     new ApiResponse(code = 500, message = "Snoop Internal Error")
   ))  
-  def startWorkflowRoute = 
+  def startWorkflowRoute =
     cookie("iPlanetDirectoryPro") { securityTokenCookie =>
       val securityToken = securityTokenCookie.content
       path("workflowExecutions") {

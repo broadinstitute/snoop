@@ -80,8 +80,9 @@ object Boot extends App {
         swaggerConfig.getString("license"),
         swaggerConfig.getString("licenseUrl"))
       ))
+    def getSwaggerOrigin : String = swaggerConfig.getString("origin")
 
-    val service = system.actorOf(SnoopApiServiceActor.props(executionServiceConstructor, swaggerService), "snoop-service")
+    val service = system.actorOf(SnoopApiServiceActor.props(executionServiceConstructor, swaggerService, getSwaggerOrigin), "snoop-service")
 
     implicit val timeout = Timeout(5.seconds)
     // start a new HTTP server on port 8080 with our service actor as the handler
